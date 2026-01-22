@@ -104,12 +104,12 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                             ui.label(
                                 egui::RichText::new(format!(
                                     "{:0>2}:{:0>2}:{:0>2}:{:0>2}",
-                                    status.h, status.m, status.s, status.f
+                                    status.ltc.h, status.ltc.m, status.ltc.s, status.ltc.f
                                 ))
                                 .monospace(),
                             );
                             ui.label(
-                                egui::RichText::new(format!("({:0>5})", status.frame_progress))
+                                egui::RichText::new(format!("({:0>5})", status.ltc.frame_progress))
                                     .monospace()
                                     .weak(),
                             );

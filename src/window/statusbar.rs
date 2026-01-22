@@ -117,7 +117,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
         ui.menu_button(
             RichText::new(format!(
                 "LTC: {}   BEAT: {}.{}",
-                app.status.time_state(),
+                app.status.time_state().ltc,
                 beat.bar_number,
                 beat.count
             ))

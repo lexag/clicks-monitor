@@ -138,8 +138,10 @@ impl TemplateApp {
         //println!("Received Message {:?}", msg.clone());
         match msg {
             Message::Small(SmallMessage::TransportData(status)) => {
-                self.status.sources[1] = AudioSourceState::TimeStatus(status.ltc.clone());
                 self.status.transport = status;
+            }
+            Message::Small(SmallMessage::TimecodeData(status)) => {
+                self.status.sources[1] = AudioSourceState::TimeStatus(status);
             }
             Message::Small(SmallMessage::BeatData(beat)) => {
                 self.status.sources[0] = AudioSourceState::BeatStatus(beat);

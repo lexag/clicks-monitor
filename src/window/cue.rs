@@ -214,8 +214,7 @@ fn render_beat(
 
     let mut event_strings: Vec<&str> = vec![];
     let mut cursor = EventCursor::new(&process_status.cue.cue.events);
-    while cursor.at_or_before(idx as u16)
-        && let Some(event) = cursor.get_next()
+    while let Some(event) = cursor.get_next()
         && event.location == idx as u16
         && let Some(inner_event) = event.event
     {

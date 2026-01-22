@@ -117,7 +117,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                     }
                     AudioSourceState::PlaybackStatus(status) => {
                         ui.horizontal_centered(|ui| {
-                            for clip in status.clips.clone() {
+                            for clip in status.clips {
                                 egui::Frame::new()
                                     .stroke(stroke)
                                     .fill(if status.clip_idx == clip {

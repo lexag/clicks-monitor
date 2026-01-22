@@ -67,6 +67,7 @@ impl UdpClient {
             message_kinds: MessageType::CueData
                 | MessageType::ShowData
                 | MessageType::TransportData
+                | MessageType::TimecodeData
                 | MessageType::BeatData
                 | MessageType::NetworkChanged
                 | MessageType::JACKStateChanged

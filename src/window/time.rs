@@ -1,6 +1,10 @@
 use crate::app::TemplateApp;
-use chrono::{DateTime, Timelike};
-use egui::{Align2, Color32, FontId, Grid, Rect, Sense, Vec2};
+use chrono::{DateTime, NaiveTime, Timelike};
+use common::mem::smpte::TimecodeInstant;
+use eframe::glow::TESS_CONTROL_SHADER_BIT;
+use egui::{
+    Align2, Color32, FontId, Frame, Grid, Margin, Rect, RichText, Sense, Stroke, Vec2, Widget,
+};
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     Grid::new("time-grid").num_columns(2).show(ui, |ui| {
@@ -8,83 +12,33 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
 
         // Monitor wall time
         let systime = chrono::prelude::Utc::now().time();
-        draw_big_clock(
-            app,
-            ui,
-            format!(
-                "{:02}{:02}{:02}  ",
-                systime.hour(),
-                systime.minute(),
-                systime.second()
-            )
-            .as_str(),
-            [b':', b':', b' '],
-            app.theme.warn_prim,
-            size,
-        );
+        draw_wall_time(app, ui, systime, "Local time".to_string(), size);
 
         // Core wall time
         let host_time = DateTime::from_timestamp_secs(app.heartbeat.system_time as i64)
             .unwrap_or_default()
             .time();
-        draw_big_clock(
-            app,
-            ui,
-            if app.heartbeat.system_time > 0 {
-                format!(
-                    "{:02}{:02}{:02}  ",
-                    host_time.hour(),
-                    host_time.minute(),
-                    host_time.second()
-                )
-            } else {
-                "        ".to_string()
-            }
-            .as_str(),
-            if app.heartbeat.system_time > 0 {
-                [b':', b':', b' ']
-            } else {
-                [b' '; 3]
-            },
-            app.theme.warn_prim,
-            size,
-        );
+        draw_wall_time(app, ui, host_time, "Core time".to_string(), size);
 
         ui.end_row();
 
         // SMPTE Timestamp
         let smpte_time = app.status.time_state().ltc;
-        draw_big_clock(
-            app,
-            ui,
-            format!(
-                "{:02}{:02}{:02}{:02}",
-                smpte_time.h, smpte_time.m, smpte_time.s, smpte_time.f
-            )
-            .as_str(),
-            [b':', b':', b':'],
-            if app.status.time_state().running {
-                app.theme.active_prim
-            } else {
-                app.theme.cued_prim
-            },
-            size,
-        );
+        draw_smpte_time(app, ui, smpte_time, "SMPTE Timecode".to_string(), size);
 
         // Session timer
-        draw_big_clock(
+        draw_session_timer(
             app,
             ui,
-            "        ",
-            [b' ', b' ', b' '],
-            app.theme.neutral_prim,
+            [systime, host_time, systime, host_time],
+            "Session timer".to_string(),
             size,
         );
 
         ui.end_row();
 
         // Metronome bar:beat
-        draw_big_clock(
+        draw_big_clock_in_frame(
             app,
             ui,
             format!(
@@ -96,37 +50,164 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             [b' ', b' ', b'.'],
             app.theme.cued_prim,
             size,
+            "Metronome (bar / beat)".to_string(),
+            |_, _| {},
         );
-        draw_big_clock(
+        draw_big_clock_in_frame(
             app,
             ui,
             format!("{: >8}", app.status.beat_state().beat_idx).as_str(),
             [b' ', b' ', b' '],
             app.theme.cued_prim,
             size,
+            "Metronome beat index".to_string(),
+            |_, _| {},
         );
 
         ui.end_row();
 
         // Monitor uptime
-        draw_big_clock(
-            app,
-            ui,
-            "        ",
-            [b' ', b' ', b' '],
-            app.theme.neutral_prim,
-            size,
-        );
+        draw_uptime(app, ui, 0, "Monitor uptime".to_string(), size);
         // Core uptime
-        draw_big_clock(
-            app,
-            ui,
-            "        ",
-            [b' ', b' ', b' '],
-            app.theme.neutral_prim,
-            size,
-        );
+        draw_uptime(app, ui, 0, "Core uptime".to_string(), size);
     });
+}
+
+pub fn draw_wall_time(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    time: NaiveTime,
+    title: String,
+    size: Vec2,
+) {
+    draw_big_clock_in_frame(
+        app,
+        ui,
+        format!(
+            "{:02}{:02}{:02}  ",
+            time.hour(),
+            time.minute(),
+            time.second()
+        )
+        .as_str(),
+        [b':', b':', b' '],
+        app.theme.warn_prim,
+        size,
+        title,
+        |_, _| {},
+    );
+}
+
+pub fn draw_session_timer(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    time: [NaiveTime; 4],
+    title: String,
+    size: Vec2,
+) {
+    draw_big_clock_in_frame(
+        app,
+        ui,
+        format!(
+            "{:02}{:02}{:02}  ",
+            time[0].hour(),
+            time[0].minute(),
+            time[0].second()
+        )
+        .as_str(),
+        [b':', b':', b' '],
+        app.theme.neutral_prim,
+        size,
+        title,
+        |app_n, ui_n| {
+            for i in 0..3 {
+                draw_big_clock(
+                    app_n,
+                    ui_n,
+                    format!(
+                        "{:02}{:02}{:02}  ",
+                        time[i + 1].hour(),
+                        time[i + 1].minute(),
+                        time[i + 1].second()
+                    )
+                    .as_str(),
+                    [b':', b':', b' '],
+                    app_n.theme.neutral_prim,
+                    size * ui_n.available_height() / size.y,
+                );
+            }
+        },
+    );
+}
+
+pub fn draw_smpte_time(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    time: TimecodeInstant,
+    title: String,
+    size: Vec2,
+) {
+    draw_big_clock_in_frame(
+        app,
+        ui,
+        format!("{:02}{:02}{:02}{:02}", time.h, time.m, time.s, time.f).as_str(),
+        [b':', b':', b':'],
+        if app.status.time_state().running {
+            app.theme.active_prim
+        } else {
+            app.theme.cued_prim
+        },
+        size,
+        title,
+        |_, _| {},
+    );
+}
+
+pub fn draw_uptime(app: &mut TemplateApp, ui: &mut egui::Ui, time: u64, title: String, size: Vec2) {
+    draw_big_clock_in_frame(
+        app,
+        ui,
+        format!(
+            "{:02}d {:02}{:02}",
+            time / 86400,
+            time / 3600 % 24,
+            time / 60 % 60
+        )
+        .as_str(),
+        [b' ', b' ', b':'],
+        app.theme.neutral_prim,
+        size,
+        title,
+        |_, _| {},
+    );
+}
+
+pub fn draw_big_clock_in_frame<F>(
+    app: &mut TemplateApp,
+    ui: &mut egui::Ui,
+    text: &str,
+    separators: [u8; 3],
+    color: Color32,
+    size: Vec2,
+    title: String,
+    lower_content: F,
+) where
+    F: Fn(&mut TemplateApp, &mut egui::Ui),
+{
+    Frame::new()
+        .stroke(Stroke::new(1.0, app.theme.base_ex))
+        .fill(app.theme.base_wk)
+        .inner_margin(Margin::same(16))
+        .show(ui, |ui| {
+            ui.vertical(|ui| {
+                draw_big_clock(app, ui, text, separators, color, size);
+
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(title).heading());
+                    lower_content(app, ui)
+                });
+            })
+        });
 }
 
 pub fn draw_big_clock(
@@ -137,22 +218,22 @@ pub fn draw_big_clock(
     color: Color32,
     size: Vec2,
 ) {
-    const OUTER_MARGIN: f32 = 8.0;
-    const SEPARATOR_WIDTH: f32 = 32.0;
-    let chunk_width: f32 = (size.x - 2.0 * OUTER_MARGIN - 3.0 * SEPARATOR_WIDTH) / 4.0;
+    let outer_margin: f32 = 8.0 * size.y / 200.0;
+    let separator_width: f32 = 32.0 * size.y / 200.0;
+    let chunk_width: f32 = (size.x - 2.0 * outer_margin - 3.0 * separator_width) / 4.0;
 
     let top_left = ui.cursor().left_top();
     let clock_rect = Rect::from_min_size(top_left, size);
     let p = ui.allocate_painter(size, Sense::click()).1;
-    p.rect_filled(clock_rect, 0.0, app.theme.base_ex);
+    p.rect_filled(clock_rect, 5.0, app.theme.base_ex);
     for i in 0..4 {
         for j in 0..2 {
             let text_char = &text[2 * i + j..2 * i + j + 1];
             p.text(
                 top_left
                     + Vec2::new(
-                        OUTER_MARGIN
-                            + (SEPARATOR_WIDTH + chunk_width) * i as f32
+                        outer_margin
+                            + (separator_width + chunk_width) * i as f32
                             + (2 * j + 1) as f32 * chunk_width / 4.0,
                         size.y / 2.0,
                     ),
@@ -175,10 +256,10 @@ pub fn draw_big_clock(
         p.text(
             top_left
                 + Vec2::new(
-                    OUTER_MARGIN
-                        + (SEPARATOR_WIDTH + chunk_width) * i as f32
+                    outer_margin
+                        + (separator_width + chunk_width) * i as f32
                         + chunk_width
-                        + SEPARATOR_WIDTH / 2.0,
+                        + separator_width / 2.0,
                     size.y * 0.48,
                 ),
             Align2::CENTER_CENTER,

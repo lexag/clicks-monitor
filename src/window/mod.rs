@@ -7,6 +7,7 @@ pub mod navigation;
 pub mod sources;
 pub mod statusbar;
 pub mod system_config;
+pub mod time;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub enum WindowTab {

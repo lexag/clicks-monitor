@@ -3,7 +3,7 @@ use crate::{
     window::{WindowCategory, WindowTab},
 };
 use common::{local::status::CombinedStatus, protocol::request::Request};
-use egui::{Button, Color32, Label, RichText, ScrollArea, Sense, Stroke, Vec2, Widget};
+use egui::{Button, Label, RichText, ScrollArea, Sense, Vec2, Widget};
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     ui.label(RichText::new("Navigation").heading());

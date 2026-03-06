@@ -310,7 +310,7 @@ fn render_event_info(
                     ));
                 }
 
-                Some(EventDescription::TimecodeEvent { time }) => {
+                Some(EventDescription::TimecodeEvent { time, properties }) => {
                     ui.label("Timestamp:");
                     ui.label(
                         RichText::new(format!("{}:{}:{}:{}", time.h, time.m, time.s, time.f))

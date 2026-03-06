@@ -73,6 +73,8 @@ impl UdpClient {
                 | MessageType::JACKStateChanged
                 | MessageType::ConfigurationChanged
                 | MessageType::ShutdownOccured
+                | MessageType::PlaybackData
+                | MessageType::PlaybackHandlerChanged
                 | MessageType::Heartbeat,
 
             last_contact: Utc::now().timestamp() as u128,

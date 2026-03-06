@@ -1,7 +1,7 @@
 use common::{
     local::{
         config::SystemConfiguration,
-        status::{AudioSourceState, CombinedStatus},
+        status::{AudioSourceState, CombinedStatus, PlaybackState},
     },
     mem::network::ConnectionInfo,
     protocol::{
@@ -140,6 +140,10 @@ impl TemplateApp {
             Message::Small(SmallMessage::TransportData(status)) => {
                 self.status.transport = status;
             }
+            Message::Small(SmallMessage::PlaybackData(status)) => {
+                self.status.sources[2 + status.channel as usize] =
+                    AudioSourceState::PlaybackStatus(status);
+            }
             Message::Small(SmallMessage::TimecodeData(status)) => {
                 self.status.sources[1] = AudioSourceState::TimeStatus(status);
             }
@@ -151,6 +155,9 @@ impl TemplateApp {
             }
             Message::Large(LargeMessage::ShowData(show)) => {
                 self.status.show = show;
+            }
+            Message::Large(LargeMessage::PlaybackHandlerChanged(status)) => {
+                self.status.playback_status = status;
             }
             Message::Large(LargeMessage::NetworkChanged(status)) => {
                 self.status.network_status = status;

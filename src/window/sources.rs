@@ -4,9 +4,10 @@ use common::{
         config::{ChannelAssignment, SystemConfigurationChange},
         status::AudioSourceState,
     },
+    mem::time::format_hms,
     protocol::request::{ControlAction, Request},
 };
-use egui::{Color32, Stroke, Widget};
+use egui::{Color32, ProgressBar, Stroke, Widget};
 
 const MSG_NO_CONNECTION: &str = "Unable to find sources. Check connection.";
 const MSG_NO_PROCESSOR: &str = "Sources are unavailable when the audio processor is not running. Start the audio processor to access sources.";
@@ -117,23 +118,55 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                     }
                     AudioSourceState::PlaybackStatus(status) => {
                         ui.horizontal_centered(|ui| {
-                            for clip in status.clips {
+                            for (i, clip) in app.status.playback_status.clips
+                                [status.channel as usize]
+                                .clone()
+                                .iter()
+                                .enumerate()
+                            {
+                                let playing = status.playing && status.clip_idx == i as u16;
                                 egui::Frame::new()
-                                    .stroke(stroke)
-                                    .fill(if status.clip_idx == clip {
-                                        if status.playing {
-                                            app.theme.active_prim
-                                        } else {
-                                            app.theme.cued_prim
-                                        }
+                                    .stroke(if playing {
+                                        Stroke::new(1.0, Color32::WHITE)
+                                    } else {
+                                        stroke
+                                    })
+                                    .fill(if playing {
+                                        app.theme.active_prim
+                                    } else if *clip < 2048 {
+                                        // FIXME: magic number for "usize::MAX
+                                        // of the core machine, which we can't
+                                        // guarantee is the same as on this
+                                        // machine
+                                        app.theme.cued_prim
                                     } else {
                                         Color32::TRANSPARENT
                                     })
                                     .show(ui, |ui| {
                                         ui.horizontal_centered(|ui| {
-                                            ui.label(clip.to_string());
-                                            ui.set_width(16.0);
+                                            ui.set_width(64.0);
                                             ui.set_height(16.0);
+                                            ui.label(if *clip < 2048 {
+                                                clip.to_string()
+                                            } else {
+                                                "".to_string()
+                                            });
+                                            if playing {
+                                                ProgressBar::new(
+                                                    status.current_sample as f32
+                                                        / status.clip_length as f32,
+                                                )
+                                                .text(
+                                                    ((status.clip_length as i32
+                                                        - status.current_sample)
+                                                        .abs()
+                                                        / app.status.jack_status.sample_rate
+                                                            as i32)
+                                                        .to_string(),
+                                                )
+                                                .desired_width(ui.available_width())
+                                                .ui(ui);
+                                            }
                                         })
                                     });
                             }

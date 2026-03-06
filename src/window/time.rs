@@ -1,29 +1,138 @@
 use crate::app::TemplateApp;
-use egui::{Align2, Color32, FontId, Frame, Grid, Rect, Sense, Vec2};
-use itertools::Itertools;
+use chrono::{DateTime, Timelike};
+use egui::{Align2, Color32, FontId, Grid, Rect, Sense, Vec2};
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     Grid::new("time-grid").num_columns(2).show(ui, |ui| {
-        for i in 0..8 {
-            draw_big_clock(
-                app,
-                ui,
-                "   34567".to_string(),
-                [b' ', b':', b'.'],
-                app.theme.active_prim,
-                Vec2::new(800.0, 200.0),
-            );
-            if i % 2 == 1 {
-                ui.end_row();
+        let size = Vec2::new(800.0, 180.0);
+
+        // Monitor wall time
+        let systime = chrono::prelude::Utc::now().time();
+        draw_big_clock(
+            app,
+            ui,
+            format!(
+                "{:02}{:02}{:02}  ",
+                systime.hour(),
+                systime.minute(),
+                systime.second()
+            )
+            .as_str(),
+            [b':', b':', b' '],
+            app.theme.warn_prim,
+            size,
+        );
+
+        // Core wall time
+        let host_time = DateTime::from_timestamp_secs(app.heartbeat.system_time as i64)
+            .unwrap_or_default()
+            .time();
+        draw_big_clock(
+            app,
+            ui,
+            if app.heartbeat.system_time > 0 {
+                format!(
+                    "{:02}{:02}{:02}  ",
+                    host_time.hour(),
+                    host_time.minute(),
+                    host_time.second()
+                )
+            } else {
+                "        ".to_string()
             }
-        }
+            .as_str(),
+            if app.heartbeat.system_time > 0 {
+                [b':', b':', b' ']
+            } else {
+                [b' '; 3]
+            },
+            app.theme.warn_prim,
+            size,
+        );
+
+        ui.end_row();
+
+        // SMPTE Timestamp
+        let smpte_time = app.status.time_state().ltc;
+        draw_big_clock(
+            app,
+            ui,
+            format!(
+                "{:02}{:02}{:02}{:02}",
+                smpte_time.h, smpte_time.m, smpte_time.s, smpte_time.f
+            )
+            .as_str(),
+            [b':', b':', b':'],
+            if app.status.time_state().running {
+                app.theme.active_prim
+            } else {
+                app.theme.cued_prim
+            },
+            size,
+        );
+
+        // Session timer
+        draw_big_clock(
+            app,
+            ui,
+            "        ",
+            [b' ', b' ', b' '],
+            app.theme.neutral_prim,
+            size,
+        );
+
+        ui.end_row();
+
+        // Metronome bar:beat
+        draw_big_clock(
+            app,
+            ui,
+            format!(
+                "{: >6}{: <2}",
+                app.status.beat_state().beat.bar_number,
+                app.status.beat_state().beat.count,
+            )
+            .as_str(),
+            [b' ', b' ', b'.'],
+            app.theme.cued_prim,
+            size,
+        );
+        draw_big_clock(
+            app,
+            ui,
+            format!("{: >8}", app.status.beat_state().beat_idx).as_str(),
+            [b' ', b' ', b' '],
+            app.theme.cued_prim,
+            size,
+        );
+
+        ui.end_row();
+
+        // Monitor uptime
+        draw_big_clock(
+            app,
+            ui,
+            "        ",
+            [b' ', b' ', b' '],
+            app.theme.neutral_prim,
+            size,
+        );
+        // Core uptime
+        draw_big_clock(
+            app,
+            ui,
+            "        ",
+            [b' ', b' ', b' '],
+            app.theme.neutral_prim,
+            size,
+        );
     });
 }
 
 pub fn draw_big_clock(
     app: &mut TemplateApp,
     ui: &mut egui::Ui,
-    text: String,
+    text: &str,
     separators: [u8; 3],
     color: Color32,
     size: Vec2,

@@ -85,6 +85,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             color = app.theme.active_prim;
         }
         ui.menu_button(RichText::new("Host Network").color(color), |ui| {
+            crate::window::connection::settings(app, ui);
             if app.rx.len() > 16 {
                 ui.colored_label(app.theme.err_prim, "Living in the past. Clearing cue...");
             } else if !app.udp_client.active {
@@ -92,10 +93,6 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             } else {
                 ui.colored_label(app.theme.active_prim, "Ok");
             }
-            ui.label("Local:");
-            ui.label(RichText::new(format!("{}", app.udp_client.local.address)).monospace());
-            ui.label("Remote");
-            ui.label(RichText::new(format!("{}", app.host_connection_info.address)).monospace());
         });
 
         // Transport status

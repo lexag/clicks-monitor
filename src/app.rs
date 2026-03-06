@@ -248,6 +248,9 @@ impl eframe::App for TemplateApp {
             WindowTab::SourcesTime => {
                 crate::window::time::display(self, ui);
             }
+            WindowTab::SourcesPlayback => {
+                crate::window::playback::display(self, ui);
+            }
             _ => {
                 let width = ui.available_width() / 3.0;
                 ui.horizontal_top(|ui| {

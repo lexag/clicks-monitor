@@ -41,34 +41,35 @@ pub fn clients_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
 }
 
 pub fn settings(app: &mut TemplateApp, ui: &mut egui::Ui) {
-    let colw = ui.available_width() / 6.0;
     if !app.allow_interaction {
         ui.disable();
     }
-    ui.horizontal(|ui| {
-        ui.label("Host address");
-        egui::DragValue::new(&mut app.host_connection_info.address.addr[0]).ui(ui);
-        egui::DragValue::new(&mut app.host_connection_info.address.addr[1]).ui(ui);
-        egui::DragValue::new(&mut app.host_connection_info.address.addr[2]).ui(ui);
-        egui::DragValue::new(&mut app.host_connection_info.address.addr[3]).ui(ui);
-        egui::DragValue::new(&mut app.host_connection_info.address.port).ui(ui);
-    });
-    ui.horizontal(|ui| {
-        ui.label("Local address");
-        ui.label(format!(
-            "{}.{}.{}.{}:{}",
-            app.udp_client.local.address.addr[0],
-            app.udp_client.local.address.addr[1],
-            app.udp_client.local.address.addr[2],
-            app.udp_client.local.address.addr[3],
-            app.udp_client.local.address.port
-        ))
-    });
-
     egui::Grid::new("connection_settings")
         .num_columns(5)
-        .max_col_width(colw)
         .show(ui, |ui| {
+            ui.label("Host address");
+            ui.horizontal(|ui| {
+                egui::DragValue::new(&mut app.host_connection_info.address.addr[0]).ui(ui);
+                egui::DragValue::new(&mut app.host_connection_info.address.addr[1]).ui(ui);
+                egui::DragValue::new(&mut app.host_connection_info.address.addr[2]).ui(ui);
+                egui::DragValue::new(&mut app.host_connection_info.address.addr[3]).ui(ui);
+                egui::DragValue::new(&mut app.host_connection_info.address.port).ui(ui);
+            });
+            ui.end_row();
+
+            ui.label("Local address");
+            ui.horizontal(|ui| {
+                ui.label(format!(
+                    "{}.{}.{}.{}:{}",
+                    app.udp_client.local.address.addr[0],
+                    app.udp_client.local.address.addr[1],
+                    app.udp_client.local.address.addr[2],
+                    app.udp_client.local.address.addr[3],
+                    app.udp_client.local.address.port
+                ))
+            });
+            ui.end_row();
+
             ui.label("Identifier");
             egui::TextEdit::singleline(&mut app.udp_client.local.identifier.str())
                 .char_limit(16)

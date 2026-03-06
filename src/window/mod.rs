@@ -4,6 +4,7 @@ pub mod cue;
 pub mod jack;
 pub mod local_config;
 pub mod navigation;
+pub mod playback;
 pub mod sources;
 pub mod statusbar;
 pub mod system_config;

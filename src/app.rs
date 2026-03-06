@@ -15,6 +15,7 @@ use crate::{
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
+    window::WindowTab,
 };
 use egui::{FontFamily, FontId, TextStyle};
 use std::collections::BTreeMap;
@@ -39,20 +40,12 @@ pub struct TemplateApp {
     #[serde(skip)]
     pub system_config: SystemConfiguration,
     pub host_connection_info: ConnectionInfo,
-    pub tab: TabView,
+    pub tab: WindowTab,
     pub layout_settings: LayoutSettings,
     pub theme: Theme,
     pub allow_interaction: bool,
     pub require_password: bool,
     pub password: String,
-}
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub enum TabView {
-    Control,
-    Sources,
-    Cue,
-    Options,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Default, PartialEq)]
@@ -80,7 +73,7 @@ impl Default for TemplateApp {
             status: CombinedStatus::default(),
             udp_client: UdpClient::new(),
             rx: unbounded().1,
-            tab: TabView::Options,
+            tab: WindowTab::PreferencesSecurity,
             layout_settings: LayoutSettings::default(),
             theme: theme::DARK,
             host_connection_info: ConnectionInfo::default(),
@@ -243,16 +236,16 @@ impl eframe::App for TemplateApp {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| match self.tab {
-            TabView::Sources => {
+            WindowTab::SourcesOverview => {
                 crate::window::sources::display(self, ui);
             }
-            TabView::Cue => {
+            WindowTab::CueTimeline => {
                 crate::window::cue::display(self, ui);
             }
-            TabView::Control => {
+            WindowTab::ControlTransport => {
                 crate::window::control::display(self, ui);
             }
-            TabView::Options => {
+            _ => {
                 let width = ui.available_width() / 3.0;
                 ui.horizontal_top(|ui| {
                     ui.vertical(|ui| {

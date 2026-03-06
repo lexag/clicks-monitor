@@ -5,10 +5,7 @@ use common::{
 };
 use egui::{Color32, RichText, Widget};
 
-use crate::{
-    app::{TabView, TemplateApp},
-    theme,
-};
+use crate::{app::TemplateApp, theme, window::WindowTab};
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     egui::menu::bar(ui, |ui| {
@@ -36,10 +33,10 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             });
             ui.menu_button("Tab", |ui| {
                 for (tab, text, short_text) in [
-                    (TabView::Sources, "Sources", "S"),
-                    (TabView::Cue, "Cue", "S"),
-                    (TabView::Control, "Transport", "T"),
-                    (TabView::Options, "Options", "O"),
+                    (WindowTab::SourcesOverview, "Sources", "S"),
+                    (WindowTab::CueTimeline, "Cue", "S"),
+                    (WindowTab::ControlTransport, "Transport", "T"),
+                    (WindowTab::PreferencesSecurity, "Options", "O"),
                 ] {
                     if egui::Button::new(text)
                         .shortcut_text(short_text)

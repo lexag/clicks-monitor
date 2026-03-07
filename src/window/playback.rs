@@ -2,7 +2,7 @@ use crate::app::TemplateApp;
 use common::event::EventDescription;
 use common::local::status::{AudioSourceState, PlaybackState};
 use common::protocol::request::{ControlAction, Request};
-use egui::{Align, Color32, Label, ProgressBar, RichText, Sense};
+use egui::{Align, Button, Color32, Label, ProgressBar, RichText, Sense};
 use egui::{Grid, Widget};
 use std::collections::HashMap;
 
@@ -14,7 +14,11 @@ pub struct PlaybackWindowMemory {
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.label(RichText::new("Playback").heading());
-        if !app.layout_settings.playback.clip_cue_list.is_empty() {
+        ui.horizontal(|ui| {
+            ui.set_width(500.0);
+            if app.layout_settings.playback.clip_cue_list.is_empty() {
+                ui.disable()
+            }
             ui.label(format!(
                 "{} clip(s) cued",
                 app.layout_settings.playback.clip_cue_list.len(),
@@ -26,10 +30,21 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                 play_clip_cue(app, ui);
                 app.layout_settings.playback.clip_cue_list.clear();
             };
+            if ui.button("Stop").clicked() && app.allow_interaction {
+                play_clip_cue(app, ui);
+            };
             if ui.button("Clear").clicked() && app.allow_interaction {
                 app.layout_settings.playback.clip_cue_list.clear();
             };
-        }
+        });
+        if Button::new(RichText::new("PANIC (Stop all)").monospace())
+            .fill(app.theme.err_prim_wk)
+            .ui(ui)
+            .clicked()
+            && app.allow_interaction
+        {
+            stop_all(app, ui);
+        };
     });
     Grid::new("playback-channel-grid")
         .num_columns(5)
@@ -201,6 +216,15 @@ pub fn play_clip_cue(app: &mut TemplateApp, ui: &mut egui::Ui) {
                     channel_idx: channel as u16,
                     clip_idx: clip,
                 },
+            )));
+    }
+}
+
+pub fn stop_all(app: &mut TemplateApp, ui: &mut egui::Ui) {
+    for i in 0..30 {
+        app.udp_client
+            .send_msg(Request::ControlAction(ControlAction::RunEvent(
+                EventDescription::PlaybackStopEvent { channel_idx: i },
             )));
     }
 }

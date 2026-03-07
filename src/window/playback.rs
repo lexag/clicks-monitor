@@ -4,6 +4,7 @@ use common::local::status::{AudioSourceState, PlaybackState};
 use common::protocol::request::{ControlAction, Request};
 use egui::{Align, Button, Color32, Label, ProgressBar, RichText, Sense};
 use egui::{Grid, Widget};
+use itertools::Itertools;
 use std::collections::HashMap;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
@@ -54,6 +55,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             ui.set_width(ui.available_width());
             ui.label("Ch. #");
             ui.label("Channel");
+            ui.label("Time left");
             ui.label("Progress");
             ui.label("Duration");
             ui.label("Clips");
@@ -90,15 +92,27 @@ pub fn render_channel_slice(app: &mut TemplateApp, ui: &mut egui::Ui, index: usi
     ui.label(channel_name);
 
     // Time bar
-    ProgressBar::new(
-        source.current_sample as f32 / source.clip_length as f32 * source.playing as usize as f32,
-    )
-    .text(format!(
+    ui.label(format!(
         "{:02.0}:{:02.0}.{:03.0}",
         (seconds_left / 60.0).floor(),
         (seconds_left % 60.0).floor(),
         (seconds_left * 1000.0 % 1000.0).floor()
-    ))
+    ));
+    ProgressBar::new(
+        source.current_sample as f32 / source.clip_length as f32 * source.playing as usize as f32,
+    )
+    .fill(if source.playing {
+        app.theme.active_prim
+    } else if app
+        .layout_settings
+        .playback
+        .clip_cue_list
+        .contains_key(&source.channel)
+    {
+        app.theme.cued_prim
+    } else {
+        Color32::TRANSPARENT
+    })
     .desired_width(500.0)
     .ui(ui);
     ui.label(format!(

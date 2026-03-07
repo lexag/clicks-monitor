@@ -230,7 +230,7 @@ fn transport_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
     }
 }
 
-fn cues_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn cues_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
     egui::Grid::new("cues-menu-grid").show(ui, |ui| {
         for (i, cue) in app.status.show.cues.iter().enumerate() {
             let color = if i == app.status.cue.cue_idx as usize {

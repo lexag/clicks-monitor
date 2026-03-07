@@ -1,3 +1,4 @@
+pub mod beats;
 pub mod connection;
 pub mod control;
 pub mod cue;

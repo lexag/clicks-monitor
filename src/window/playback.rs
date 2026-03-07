@@ -1,12 +1,36 @@
 use crate::app::TemplateApp;
-use crate::widget::cassette::Cassette;
+use common::event::EventDescription;
 use common::local::status::{AudioSourceState, PlaybackState};
-use common::mem::time::format_hms;
-use egui::{Color32, Frame, ProgressBar, RichText, Stroke, Vec2};
+use common::protocol::request::{ControlAction, Request};
+use egui::{Align, Color32, Label, ProgressBar, RichText, Sense};
 use egui::{Grid, Widget};
+use std::collections::HashMap;
+
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+pub struct PlaybackWindowMemory {
+    pub clip_cue_list: HashMap<u8, u16>,
+}
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
-    ui.label(RichText::new("Playback").heading());
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Playback").heading());
+        if !app.layout_settings.playback.clip_cue_list.is_empty() {
+            ui.label(format!(
+                "{} clip(s) cued",
+                app.layout_settings.playback.clip_cue_list.len(),
+            ));
+            if ui.button("Play").clicked() && app.allow_interaction {
+                play_clip_cue(app, ui);
+            };
+            if ui.button("Once").clicked() && app.allow_interaction {
+                play_clip_cue(app, ui);
+                app.layout_settings.playback.clip_cue_list.clear();
+            };
+            if ui.button("Clear").clicked() && app.allow_interaction {
+                app.layout_settings.playback.clip_cue_list.clear();
+            };
+        }
+    });
     Grid::new("playback-channel-grid")
         .num_columns(5)
         .striped(true)
@@ -54,10 +78,20 @@ pub fn render_channel_slice(app: &mut TemplateApp, ui: &mut egui::Ui, index: usi
     ProgressBar::new(
         source.current_sample as f32 / source.clip_length as f32 * source.playing as usize as f32,
     )
-    .text(format_hms(seconds_left as u64).str())
+    .text(format!(
+        "{:02.0}:{:02.0}.{:03.0}",
+        (seconds_left / 60.0).floor(),
+        (seconds_left % 60.0).floor(),
+        (seconds_left * 1000.0 % 1000.0).floor()
+    ))
     .desired_width(500.0)
     .ui(ui);
-    ui.label(format_hms(seconds_total as u64).str());
+    ui.label(format!(
+        "{:02.0}:{:02.0}.{:03.0}",
+        (seconds_total / 60.0).floor(),
+        (seconds_total % 60.0).floor(),
+        (seconds_total * 1000.0 % 1000.0).floor()
+    ));
 
     // Clips
     ui.horizontal(|ui| {
@@ -84,15 +118,24 @@ pub fn render_clip(
     selected: bool,
     status: PlaybackState,
 ) {
-    let frame = egui::Frame::new()
+    let real_clip = clip < 2048;
+    // FIXME: magic number for "usize::MAX
+    // of the core machine, which we can't
+    // guarantee is the same as on this
+    // machine
+    egui::Frame::new()
         .fill(if selected {
             app.theme.active_prim
-        } else if clip < 2048 {
-            // FIXME: magic number for "usize::MAX
-            // of the core machine, which we can't
-            // guarantee is the same as on this
-            // machine
+        } else if app
+            .layout_settings
+            .playback
+            .clip_cue_list
+            .get(&status.channel)
+            .is_some_and(|c| *c as u16 == clip)
+        {
             app.theme.cued_prim
+        } else if real_clip {
+            app.theme.base_ex
         } else {
             Color32::TRANSPARENT
         })
@@ -100,24 +143,64 @@ pub fn render_clip(
             ui.horizontal_centered(|ui| {
                 ui.set_width(64.0);
                 ui.set_height(16.0);
-                ui.label(if clip < 2048 {
-                    clip.to_string()
+
+                if !real_clip {
+                    return;
+                }
+
+                let cue_button = Label::new("☉")
+                    .sense(Sense::click())
+                    .halign(Align::RIGHT)
+                    .selectable(false)
+                    .ui(ui);
+
+                if cue_button.clicked() && app.allow_interaction {
+                    app.layout_settings
+                        .playback
+                        .clip_cue_list
+                        .insert(status.channel, clip);
+                }
+
+                let play_button = Label::new(if status.playing && selected {
+                    "⏹"
                 } else {
-                    "".to_string()
-                });
-                if selected {}
-            })
+                    "▶"
+                })
+                .selectable(false)
+                .sense(Sense::click())
+                .ui(ui);
+
+                if play_button.double_clicked() && app.allow_interaction {
+                    app.udp_client
+                        .send_msg(Request::ControlAction(ControlAction::RunEvent(
+                            if status.playing && selected {
+                                EventDescription::PlaybackStopEvent {
+                                    channel_idx: status.channel as u16,
+                                }
+                            } else {
+                                EventDescription::PlaybackEvent {
+                                    sample: 0,
+                                    channel_idx: status.channel as u16,
+                                    clip_idx: clip,
+                                }
+                            },
+                        )));
+                }
+
+                ui.label(clip.to_string());
+            });
         });
-    if frame.response.double_clicked() && app.allow_interaction {
+}
+
+pub fn play_clip_cue(app: &mut TemplateApp, ui: &mut egui::Ui) {
+    for (channel, clip) in app.layout_settings.playback.clip_cue_list.clone() {
         app.udp_client
-            .send_msg(common::protocol::request::Request::ControlAction(
-                common::protocol::request::ControlAction::RunEvent(
-                    common::event::EventDescription::PlaybackEvent {
-                        sample: 0,
-                        channel_idx: status.channel as u16,
-                        clip_idx: clip,
-                    },
-                ),
-            ));
-    };
+            .send_msg(Request::ControlAction(ControlAction::RunEvent(
+                EventDescription::PlaybackEvent {
+                    sample: 0,
+                    channel_idx: channel as u16,
+                    clip_idx: clip,
+                },
+            )));
+    }
 }

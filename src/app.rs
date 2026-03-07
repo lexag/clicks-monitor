@@ -15,7 +15,7 @@ use crate::{
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
-    window::WindowTab,
+    window::{playback::PlaybackWindowMemory, WindowTab},
 };
 use egui::{FontFamily, FontId, TextStyle};
 use std::collections::BTreeMap;
@@ -62,6 +62,7 @@ pub struct LayoutSettings {
     pub routing_window_open: bool,
     pub network_info_window_open: bool,
     pub channel_edit_window_open: bool,
+    pub playback: PlaybackWindowMemory,
 }
 
 impl Default for TemplateApp {

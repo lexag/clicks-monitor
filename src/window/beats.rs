@@ -1,19 +1,33 @@
 use crate::app::TemplateApp;
 use common::{beat::Beat, cue::Cue, event::EventDescription};
 use egui::{
-    style::ScrollAnimation, Align, Align2, Color32, Grid, Rect, RichText, ScrollArea, Vec2,
+    style::ScrollAnimation, Align, Align2, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2,
 };
-use std::{
-    fmt::format,
-    ops::{Range, RangeBounds},
-    thread::current,
-};
+use std::ops::Range;
+
+const NUM_COL: usize = 7;
+const COL_W: [f32; NUM_COL] = [64.0, 64.0, 64.0, 64.0, 64.0, 64.0, 256.0];
 
 pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     ui.horizontal_top(|ui| {
-        crate::window::statusbar::cues_menu(app, ui);
-        ui.separator();
-        beat_table(app, ui);
+        Frame::window(ui.style()).show(ui, |ui| {
+            ui.vertical(|ui| {
+                ui.label(RichText::new("Cues").heading());
+                crate::window::statusbar::cues_menu(app, ui);
+            });
+        });
+        Frame::window(ui.style()).show(ui, |ui| {
+            ui.vertical(|ui| {
+                ui.label(
+                    RichText::new(format!(
+                        "#{} {}",
+                        app.status.cue.cue.metadata.human_ident, app.status.cue.cue.metadata.name
+                    ))
+                    .heading(),
+                );
+                beat_table(app, ui);
+            });
+        });
     });
 }
 
@@ -25,12 +39,13 @@ pub fn beat_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
             .min_row_height(16.0)
             .min_col_width(64.0)
             .show(ui, |ui| {
+                ui.set_width(COL_W.iter().sum());
                 ui.label("Index");
                 ui.label("Bar");
                 ui.label("Count");
                 ui.label("Length");
                 ui.label("Tempo");
-                ui.label("Rehearsal Mark");
+                ui.label("R. Mark");
                 ui.label("Events");
                 ui.end_row();
             });
@@ -80,6 +95,7 @@ pub fn beat_table_cue(
     cue: Cue,
     beat_range: Range<usize>,
 ) {
+    ui.set_width(COL_W.iter().sum());
     for (i, beat) in cue.beats[beat_range.clone()].iter().enumerate() {
         let actual_index = i + beat_range.clone().min().unwrap_or(0);
         ui.label(actual_index.to_string());

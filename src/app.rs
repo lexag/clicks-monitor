@@ -255,6 +255,9 @@ impl eframe::App for TemplateApp {
             WindowTab::CueBeats => {
                 crate::window::beats::display(self, ui);
             }
+            WindowTab::CueEvents => {
+                crate::window::events::display(self, ui);
+            }
             _ => {
                 let width = ui.available_width() / 3.0;
                 ui.horizontal_top(|ui| {

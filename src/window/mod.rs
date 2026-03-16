@@ -2,6 +2,7 @@ pub mod beats;
 pub mod connection;
 pub mod control;
 pub mod cue;
+pub mod events;
 pub mod jack;
 pub mod local_config;
 pub mod navigation;

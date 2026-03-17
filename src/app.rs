@@ -1,6 +1,6 @@
 use common::{
     local::{
-        config::SystemConfiguration,
+        config::{LogItem, SystemConfiguration},
         status::{AudioSourceState, CombinedStatus, PlaybackState},
     },
     mem::network::ConnectionInfo,
@@ -15,7 +15,7 @@ use crate::{
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
-    window::{playback::PlaybackWindowMemory, WindowTab},
+    window::{logs::LogWindowMemory, playback::PlaybackWindowMemory, WindowTab},
 };
 use egui::{FontFamily, FontId, TextStyle};
 use std::collections::BTreeMap;
@@ -39,6 +39,8 @@ pub struct TemplateApp {
     pub text_entry: TextEntry,
     #[serde(skip)]
     pub system_config: SystemConfiguration,
+    #[serde(skip)]
+    pub log_entries: Vec<LogItem>,
     pub host_connection_info: ConnectionInfo,
     pub tab: WindowTab,
     pub layout_settings: LayoutSettings,
@@ -63,6 +65,7 @@ pub struct LayoutSettings {
     pub network_info_window_open: bool,
     pub channel_edit_window_open: bool,
     pub playback: PlaybackWindowMemory,
+    pub log: LogWindowMemory,
 }
 
 impl Default for TemplateApp {
@@ -83,6 +86,7 @@ impl Default for TemplateApp {
             password: String::new(),
             text_entry: TextEntry::new(),
             heartbeat: Heartbeat::default(),
+            log_entries: vec![],
         }
     }
 }
@@ -169,6 +173,7 @@ impl TemplateApp {
                 self.system_config = config;
             }
             Message::Small(SmallMessage::Heartbeat(heartbeat)) => self.heartbeat = heartbeat,
+            Message::Large(LargeMessage::Log(item)) => self.log_entries.push(item),
             _ => {}
         }
     }
@@ -257,6 +262,9 @@ impl eframe::App for TemplateApp {
             }
             WindowTab::CueEvents => {
                 crate::window::events::display(self, ui);
+            }
+            WindowTab::SystemLogs => {
+                crate::window::logs::display(self, ui);
             }
             _ => {
                 let width = ui.available_width() / 3.0;

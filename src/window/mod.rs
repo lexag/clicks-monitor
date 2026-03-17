@@ -4,6 +4,7 @@ pub mod cue;
 pub mod events;
 pub mod jack;
 pub mod local_config;
+pub mod logs;
 pub mod navigation;
 pub mod playback;
 pub mod sources;

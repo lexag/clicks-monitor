@@ -244,7 +244,7 @@ impl eframe::App for TemplateApp {
                 crate::window::cue::display(self, ui);
             }
             WindowTab::ControlTransport => {
-                crate::window::control::display(self, ui);
+                crate::window::transport::display(self, ui);
             }
             WindowTab::SourcesTime => {
                 crate::window::time::display(self, ui);

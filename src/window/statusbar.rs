@@ -205,7 +205,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             );
         }
 
-        crate::window::control::control_field(app, ui);
+        crate::window::transport::control_field(app, ui);
     });
 }
 

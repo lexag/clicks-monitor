@@ -1,6 +1,5 @@
 pub mod beats;
 pub mod connection;
-pub mod control;
 pub mod cue;
 pub mod events;
 pub mod jack;
@@ -11,6 +10,7 @@ pub mod sources;
 pub mod statusbar;
 pub mod system_config;
 pub mod time;
+pub mod transport;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub enum WindowTab {

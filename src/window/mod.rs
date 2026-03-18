@@ -6,6 +6,7 @@ pub mod jack;
 pub mod local_config;
 pub mod logs;
 pub mod navigation;
+pub mod performance;
 pub mod playback;
 pub mod sources;
 pub mod statusbar;

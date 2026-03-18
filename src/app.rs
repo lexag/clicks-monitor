@@ -15,7 +15,10 @@ use crate::{
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
-    window::{logs::LogWindowMemory, playback::PlaybackWindowMemory, WindowTab},
+    window::{
+        logs::LogWindowMemory, performance::PerformanceWindowMemory,
+        playback::PlaybackWindowMemory, WindowTab,
+    },
 };
 use egui::{FontFamily, FontId, TextStyle};
 use std::collections::BTreeMap;
@@ -66,6 +69,7 @@ pub struct LayoutSettings {
     pub channel_edit_window_open: bool,
     pub playback: PlaybackWindowMemory,
     pub log: LogWindowMemory,
+    pub performance: PerformanceWindowMemory,
 }
 
 impl Default for TemplateApp {
@@ -172,7 +176,16 @@ impl TemplateApp {
                 }
                 self.system_config = config;
             }
-            Message::Small(SmallMessage::Heartbeat(heartbeat)) => self.heartbeat = heartbeat,
+            Message::Small(SmallMessage::Heartbeat(heartbeat)) => {
+                self.heartbeat = heartbeat;
+                self.layout_settings
+                    .performance
+                    .heartbeats
+                    .push_back(heartbeat.clone());
+                while self.layout_settings.performance.heartbeats.len() > 300 {
+                    self.layout_settings.performance.heartbeats.pop_front();
+                }
+            }
             Message::Large(LargeMessage::Log(item)) => self.log_entries.push(item),
             _ => {}
         }
@@ -265,6 +278,9 @@ impl eframe::App for TemplateApp {
             }
             WindowTab::SystemLogs => {
                 crate::window::logs::display(self, ui);
+            }
+            WindowTab::SystemPerformance => {
+                crate::window::performance::display(self, ui);
             }
             _ => {
                 let width = ui.available_width() / 3.0;

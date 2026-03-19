@@ -93,6 +93,14 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             } else {
                 ui.colored_label(app.theme.active_prim, "Ok");
             }
+            ui.label(format!(
+                "Common version: {}",
+                app.heartbeat.common_version.str()
+            ));
+            ui.label(format!(
+                "System version: {}",
+                app.heartbeat.system_version.str()
+            ));
         });
 
         // Transport status

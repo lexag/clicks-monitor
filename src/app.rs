@@ -248,7 +248,7 @@ impl eframe::App for TemplateApp {
             crate::window::statusbar::display(self, ui);
         });
 
-        egui::SidePanel::left("sources-panel")
+        egui::SidePanel::left("navigation-panel")
             .resizable(false)
             .show_animated(ctx, true, |ui| {
                 crate::window::navigation::display(self, ui);
@@ -281,6 +281,12 @@ impl eframe::App for TemplateApp {
             }
             WindowTab::SystemPerformance => {
                 crate::window::performance::display(self, ui);
+            }
+            WindowTab::SystemAudio => {
+                crate::window::settings_audio::display(self, ui);
+            }
+            WindowTab::SystemNetwork => {
+                crate::window::network::display(self, ui);
             }
             _ => {
                 let width = ui.available_width() / 3.0;

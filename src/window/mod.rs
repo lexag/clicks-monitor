@@ -6,8 +6,10 @@ pub mod jack;
 pub mod local_config;
 pub mod logs;
 pub mod navigation;
+pub mod network;
 pub mod performance;
 pub mod playback;
+pub mod settings_audio;
 pub mod sources;
 pub mod statusbar;
 pub mod system_config;
@@ -28,9 +30,7 @@ pub enum WindowTab {
     SystemLogs,
     SystemPerformance,
     SystemNetwork,
-    SettingsAudio,
-    SettingsNetwork,
-    SettingsLogs,
+    SystemAudio,
     PreferencesAppearance,
     PreferencesHotkeys,
     PreferencesSecurity,
@@ -46,12 +46,10 @@ impl WindowTab {
             Self::ControlSystem | Self::ControlRunEvent | Self::ControlTransport => {
                 WindowCategory::Control
             }
-            Self::SystemLogs | Self::SystemPerformance | Self::SystemNetwork => {
-                WindowCategory::System
-            }
-            Self::SettingsAudio | Self::SettingsNetwork | Self::SettingsLogs => {
-                WindowCategory::Settings
-            }
+            Self::SystemLogs
+            | Self::SystemPerformance
+            | Self::SystemNetwork
+            | Self::SystemAudio => WindowCategory::System,
             Self::PreferencesAppearance | Self::PreferencesHotkeys | Self::PreferencesSecurity => {
                 WindowCategory::Preferences
             }
@@ -72,9 +70,7 @@ impl WindowTab {
             Self::SystemLogs => "Logs",
             Self::SystemPerformance => "Performance",
             Self::SystemNetwork => "Network",
-            Self::SettingsAudio => "Audio",
-            Self::SettingsNetwork => "Network",
-            Self::SettingsLogs => "Logs",
+            Self::SystemAudio => "Audio",
             Self::PreferencesAppearance => "Appearance",
             Self::PreferencesHotkeys => "Hotkeys",
             Self::PreferencesSecurity => "Security",

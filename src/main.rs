@@ -27,7 +27,7 @@ pub fn main() -> eframe::Result {
     udp_client.start();
 
     eframe::run_native(
-        "eframe template",
+        format!("ClicKS Monitor {}", env!("CARGO_PKG_VERSION")).as_str(),
         native_options,
         Box::new(|cc| Ok(Box::new(app::ClicksMonitorApp::new(cc, udp_client)))),
     )

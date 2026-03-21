@@ -20,7 +20,7 @@ use crate::{
         playback::PlaybackWindowMemory, security::SecurityWindowMemory, WindowTab,
     },
 };
-use egui::FontFamily;
+use egui::{Context, FontFamily};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -79,7 +79,6 @@ impl Default for ClicksMonitorApp {
 impl ClicksMonitorApp {
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-    /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>, udp_client: UdpClient) -> Self {
         let mut a = if let Some(storage) = cc.storage {
             serde_json::from_str(
@@ -89,8 +88,6 @@ impl ClicksMonitorApp {
         } else {
             Self::default()
         };
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
         a.udp_client = udp_client;
         a.rx = a.udp_client.get_receiver();
         a.set_theme(cc.egui_ctx.clone(), a.theme);
@@ -108,7 +105,7 @@ impl ClicksMonitorApp {
         self.theme = theme;
     }
 
-    pub fn handle_cc_message(&mut self, msg: Message, size: usize) {
+    pub fn handle_udp_message(&mut self, msg: Message, size: usize) {
         self.udp_client.active = true;
         let tally_pre = self
             .udp_client
@@ -118,7 +115,6 @@ impl ClicksMonitorApp {
         self.udp_client
             .rx_message_tally
             .insert(msg.to_type(), (tally_pre.0 + 1, tally_pre.1 + size));
-        //println!("Received Message {:?}", msg.clone());
         match msg {
             Message::Small(SmallMessage::TransportData(status)) => {
                 self.status.transport = status;
@@ -162,7 +158,7 @@ impl ClicksMonitorApp {
                 self.local_memory
                     .performance
                     .heartbeats
-                    .push_back(heartbeat.clone());
+                    .push_back(heartbeat);
                 while self.local_memory.performance.heartbeats.len() > 300 {
                     self.local_memory.performance.heartbeats.pop_front();
                 }
@@ -173,7 +169,6 @@ impl ClicksMonitorApp {
     }
 
     fn setup_custom_fonts(&self, ctx: &egui::Context) {
-        // Load the font from file
         let font_data =
             include_bytes!("../assets/fonts/DroidSansMNerdFontMono-Regular.otf").to_vec();
 
@@ -201,40 +196,31 @@ impl ClicksMonitorApp {
         // Apply the font definitions
         ctx.set_fonts(fonts);
     }
-}
 
-impl eframe::App for ClicksMonitorApp {
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        self.udp_client
-            .send_msg(Request::Unsubscribe(self.udp_client.local));
-    }
-    /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        storage.set_string(eframe::APP_KEY, serde_json::to_string(&self).unwrap());
-    }
-
-    /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint();
-
+    fn handle_all_udp_messages(&mut self) {
         loop {
             match self.rx.try_recv() {
-                Ok((msg, size)) => self.handle_cc_message(msg, size),
+                Ok((msg, size)) => self.handle_udp_message(msg, size),
                 Err(crossbeam_channel::TryRecvError::Empty) => break,
                 Err(err) => println!("rx error: {}", err),
             }
         }
-
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            crate::window::statusbar::display(self, ui);
-        });
-
+    }
+    fn render_navigation_panel(&mut self, ctx: &Context) {
         egui::SidePanel::left("navigation-panel")
             .resizable(false)
             .show_animated(ctx, true, |ui| {
                 crate::window::navigation::display(self, ui);
             });
+    }
 
+    fn render_statusbar(&mut self, ctx: &Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            crate::window::statusbar::display(self, ui);
+        });
+    }
+
+    fn render_main_panel(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| match self.local_memory.current_tab {
             WindowTab::SourcesOverview => {
                 crate::window::sources::display(self, ui);
@@ -271,6 +257,26 @@ impl eframe::App for ClicksMonitorApp {
             }
             _ => {}
         });
+    }
+}
+
+impl eframe::App for ClicksMonitorApp {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.udp_client
+            .send_msg(Request::Unsubscribe(self.udp_client.local));
+    }
+    /// Called by the frame work to save state before shutdown.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string(eframe::APP_KEY, serde_json::to_string(&self).unwrap());
+    }
+
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        ctx.request_repaint();
+        self.handle_all_udp_messages();
+
+        self.render_statusbar(ctx);
+        self.render_navigation_panel(ctx);
+        self.render_main_panel(ctx);
 
         self.text_entry = self.text_entry.clone().display(self).clone();
     }

@@ -1,4 +1,4 @@
-use egui::{Color32, Frame, InnerResponse, Margin, Stroke, Ui, Widget};
+use egui::{Color32, Frame, InnerResponse, Margin, Stroke, Ui};
 
 #[derive()]
 pub struct Cassette {

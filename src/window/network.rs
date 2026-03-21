@@ -4,11 +4,11 @@ use std::{
 };
 
 use common::mem::{
-    network::{ConnectionEnd, ConnectionInfo, SubscriberInfo},
+    network::SubscriberInfo,
     str::StaticString,
     typeflags::{MessageType, RequestType},
 };
-use egui::{Align2, CentralPanel, Color32, FontId, Painter, Pos2, RichText, Sense, Stroke, Vec2};
+use egui::{Align2, Color32, FontId, Painter, Pos2, RichText, Sense, Stroke, Vec2};
 
 use crate::app::ClicksMonitorApp;
 
@@ -29,7 +29,7 @@ fn format_data_amount(bytes: usize) -> String {
     let n = bytesf.add(0.5).log10().floor();
     let si_idx = n.div(3.0).floor();
 
-    let mut val = bytesf.div(1000.0_f32.powf(si_idx as f32));
+    let val = bytesf.div(1000.0_f32.powf(si_idx as f32));
 
     format!("{} {}", val.round(), SI[si_idx as usize])
 }

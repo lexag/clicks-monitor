@@ -3,7 +3,7 @@ use common::{
     local::config::{LogContext, LogKind},
     mem::time::format_hms,
 };
-use egui::{Frame, Grid, Label, RichText, ScrollArea, Widget};
+use egui::{Grid, Label, RichText, ScrollArea, Widget};
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct LogWindowMemory {

@@ -1,7 +1,7 @@
 use crate::app::ClicksMonitorApp;
 use common::{beat::Beat, cue::Cue, event::EventDescription};
 use egui::{
-    style::ScrollAnimation, Align, Align2, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2,
+    style::ScrollAnimation, Align, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2,
 };
 use std::ops::Range;
 
@@ -140,7 +140,7 @@ pub fn beat_table_beat(
 
         event_string.push_str(
             match event.event {
-                Some(EventDescription::TimecodeEvent { time, properties }) => {
+                Some(EventDescription::TimecodeEvent { time, properties: _ }) => {
                     format!("LTC [{}]", time)
                 }
 

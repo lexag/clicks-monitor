@@ -221,7 +221,7 @@ pub fn render_clip(
         });
 }
 
-pub fn play_clip_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+pub fn play_clip_cue(app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
     for (channel, clip) in app.local_memory.playback.clip_cue_list.clone() {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(
@@ -234,7 +234,7 @@ pub fn play_clip_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     }
 }
 
-pub fn stop_all(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+pub fn stop_all(app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
     for i in 0..30 {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(

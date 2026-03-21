@@ -1,7 +1,7 @@
-use std::{collections::VecDeque, ops::Sub};
+use std::collections::VecDeque;
 
 use common::protocol::message::Heartbeat;
-use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Vec2};
+use egui::{Align2, Color32, FontId, RichText, Sense, Stroke, Vec2};
 
 use crate::app::ClicksMonitorApp;
 
@@ -119,7 +119,7 @@ pub fn graph(
             .unwrap_or(&0.0);
 
         // let x_round_factor = 10_f32.powf(x_max.log10().ceil() + 1.0).ceil();
-        let y_round_factor = 10_f32.powf(y_max.log10().ceil() + 1.0).ceil();
+        let _y_round_factor = 10_f32.powf(y_max.log10().ceil() + 1.0).ceil();
 
         x_min = x_min_f.unwrap_or(x_min);
         x_max = x_max_f.unwrap_or(x_max);

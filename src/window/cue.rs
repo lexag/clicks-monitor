@@ -221,9 +221,9 @@ fn render_beat(
         let event_icon = match inner_event {
             EventDescription::JumpEvent {
                 destination,
-                requirement,
-                when_passed,
-                when_jumped,
+                requirement: _,
+                when_passed: _,
+                when_jumped: _,
             } => {
                 if destination as usize > idx {
                     "J"
@@ -255,7 +255,7 @@ fn render_event_info(
     theme: Theme,
     ui: &mut egui::Ui,
     app: &ClicksMonitorApp,
-    idx: usize,
+    _idx: usize,
     beat: Beat,
     event: Event,
 ) {
@@ -275,9 +275,9 @@ fn render_event_info(
             match event.event {
                 Some(EventDescription::JumpEvent {
                     destination,
-                    requirement,
-                    when_jumped,
-                    when_passed,
+                    requirement: _,
+                    when_jumped: _,
+                    when_passed: _,
                 }) => {
                     let dest_beat = app.status.cue.cue.get_beat(destination).unwrap();
                     ui.label("Destination:");
@@ -310,7 +310,7 @@ fn render_event_info(
                     ));
                 }
 
-                Some(EventDescription::TimecodeEvent { time, properties }) => {
+                Some(EventDescription::TimecodeEvent { time, properties: _ }) => {
                     ui.label("Timestamp:");
                     ui.label(
                         RichText::new(format!("{}:{}:{}:{}", time.h, time.m, time.s, time.f))

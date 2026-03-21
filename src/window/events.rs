@@ -1,9 +1,8 @@
 use crate::app::ClicksMonitorApp;
 use common::event::{
-    Event, EventDescription, JumpModeChange, JumpRequirement, PauseEventBehaviour,
+    Event, EventDescription, JumpRequirement, PauseEventBehaviour,
 };
 use egui::{Color32, Grid, ProgressBar, RichText, Widget};
-use std::sync::mpsc::channel;
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
@@ -96,8 +95,8 @@ pub fn render_event_slice(app: &ClicksMonitorApp, ui: &mut egui::Ui, event: &Eve
                 EventDescription::JumpEvent {
                     destination,
                     requirement,
-                    when_jumped,
-                    when_passed,
+                    when_jumped: _,
+                    when_passed: _,
                 } => {
                     let beat = app.status.cue.cue.get_beat(destination);
                     let dest_s = if let Some(beat) = beat {
@@ -118,7 +117,7 @@ pub fn render_event_slice(app: &ClicksMonitorApp, ui: &mut egui::Ui, event: &Eve
                     ui.label(format!("{} BPM", tempo));
                 }
                 EventDescription::GradualTempoChangeEvent {
-                    start_tempo,
+                    start_tempo: _,
                     end_tempo,
                     length,
                 } => {

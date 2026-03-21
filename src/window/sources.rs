@@ -4,12 +4,11 @@ use common::{
         config::{ChannelAssignment, ChannelConfiguration, SystemConfigurationChange},
         status::AudioSourceState,
     },
-    mem::time::format_hms,
     protocol::request::{ControlAction, Request},
 };
 use egui::{
-    Align2, Color32, FontId, Frame, Grid, Label, Pos2, ProgressBar, Rect, Response, RichText,
-    ScrollArea, Sense, Slider, Stroke, StrokeKind, Vec2, Widget,
+    Align2, Color32, FontId, Frame, Grid, Label, ProgressBar, Rect, Response, RichText,
+    ScrollArea, Sense, Stroke, StrokeKind, Vec2, Widget,
 };
 
 const MSG_NO_CONNECTION: &str = "Unable to find sources. Check connection.";

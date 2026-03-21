@@ -1,12 +1,11 @@
 use crate::{
     app::ClicksMonitorApp,
-    widget::cassette::{Cassette, CassetteDeck},
+    widget::cassette::Cassette,
 };
 use chrono::{DateTime, NaiveTime, Timelike};
 use common::mem::smpte::TimecodeInstant;
-use eframe::glow::TESS_CONTROL_SHADER_BIT;
 use egui::{
-    Align2, Color32, FontId, Frame, Grid, Margin, Rect, RichText, Sense, Stroke, Vec2, Widget,
+    Align2, Color32, FontId, Grid, Rect, RichText, Sense, Stroke, Vec2,
 };
 
 const GRID_MARGIN: f32 = 5.0;

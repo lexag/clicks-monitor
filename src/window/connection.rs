@@ -3,10 +3,6 @@ use chrono::{DateTime, Utc};
 use crate::app::ClicksMonitorApp;
 use common::{
     local::status::CombinedStatus,
-    mem::{
-        network::IpAddress,
-        typeflags::{MessageType, RequestType},
-    },
     protocol::request::Request,
 };
 use egui::Widget;
@@ -109,7 +105,7 @@ pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
         );
 }
 
-pub fn details(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+pub fn details(_app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
     //    egui::Grid::new("connection_details")
     //        .num_columns(2)
     //        .max_col_width(ui.available_width() / 2.0)

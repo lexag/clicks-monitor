@@ -7,4 +7,4 @@ pub struct SecurityWindowMemory {
     pub password: String,
 }
 
-pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {}
+pub fn display(_app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {}

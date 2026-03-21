@@ -273,14 +273,6 @@ impl ClicksMonitorApp {
             (renderer)(self, ui);
         });
     }
-
-    pub fn titlebar_options(&mut self) -> egui_desktop::TitleBarOptions {
-        egui_desktop::TitleBarOptions {
-            title: format!("ClicKS Monitor {}", Self::VERSION).into(),
-            theme_mode: egui_desktop::ThemeMode::System,
-            ..Default::default()
-        }
-    }
 }
 
 impl eframe::App for ClicksMonitorApp {
@@ -293,17 +285,9 @@ impl eframe::App for ClicksMonitorApp {
         storage.set_string(eframe::APP_KEY, serde_json::to_string(&self).unwrap());
     }
 
-    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         // Business logic
         self.handle_all_udp_messages();
-
-        // Egui Desktop: Title bars and stuff
-        egui_desktop::apply_rounded_corners(frame);
-        let mut titlebar = egui_desktop::TitleBar::new(self.titlebar_options())
-            .with_app_icon(include_bytes!("../images/icon-64.png"), "app-icon-64");
-        titlebar.sync_with_egui_theme(ctx);
-        titlebar.show(ctx);
-        egui_desktop::render_resize_handles(ctx);
 
         self.render_statusbar(ctx);
         self.render_navigation_panel(ctx);

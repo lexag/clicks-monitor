@@ -1,7 +1,10 @@
+pub mod appearance;
 pub mod beats;
 pub mod connection;
 pub mod cue;
 pub mod events;
+pub mod file_system;
+pub mod hotkeys;
 pub mod jack;
 pub mod local_config;
 pub mod logs;
@@ -9,6 +12,7 @@ pub mod navigation;
 pub mod network;
 pub mod performance;
 pub mod playback;
+pub mod run_event;
 pub mod security;
 pub mod settings_audio;
 pub mod sources;
@@ -28,7 +32,7 @@ pub enum WindowTab {
     CueEvents,
     ControlTransport,
     ControlRunEvent,
-    ControlSystem,
+    ControlFileSystem,
     SystemLogs,
     SystemPerformance,
     SystemNetwork,
@@ -45,7 +49,7 @@ impl WindowTab {
                 WindowCategory::Sources
             }
             Self::CueTimeline | Self::CueBeats | Self::CueEvents => WindowCategory::Cue,
-            Self::ControlSystem | Self::ControlRunEvent | Self::ControlTransport => {
+            Self::ControlFileSystem | Self::ControlRunEvent | Self::ControlTransport => {
                 WindowCategory::Control
             }
             Self::SystemLogs
@@ -68,7 +72,7 @@ impl WindowTab {
             Self::CueEvents => "Events",
             Self::ControlTransport => "Transport",
             Self::ControlRunEvent => "Run Event",
-            Self::ControlSystem => "File System",
+            Self::ControlFileSystem => "File System",
             Self::SystemLogs => "Logs",
             Self::SystemPerformance => "Performance",
             Self::SystemNetwork => "Network",

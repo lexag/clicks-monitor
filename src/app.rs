@@ -248,41 +248,26 @@ impl ClicksMonitorApp {
     }
 
     fn render_main_panel(&mut self, ctx: &Context) {
-        egui::CentralPanel::default().show(ctx, |ui| match self.local_memory.current_tab {
-            WindowTab::SourcesOverview => {
-                crate::window::sources::display(self, ui);
-            }
-            WindowTab::CueTimeline => {
-                crate::window::cue::display(self, ui);
-            }
-            WindowTab::ControlTransport => {
-                crate::window::transport::display(self, ui);
-            }
-            WindowTab::SourcesTime => {
-                crate::window::time::display(self, ui);
-            }
-            WindowTab::SourcesPlayback => {
-                crate::window::playback::display(self, ui);
-            }
-            WindowTab::CueBeats => {
-                crate::window::beats::display(self, ui);
-            }
-            WindowTab::CueEvents => {
-                crate::window::events::display(self, ui);
-            }
-            WindowTab::SystemLogs => {
-                crate::window::logs::display(self, ui);
-            }
-            WindowTab::SystemPerformance => {
-                crate::window::performance::display(self, ui);
-            }
-            WindowTab::SystemAudio => {
-                crate::window::settings_audio::display(self, ui);
-            }
-            WindowTab::SystemNetwork => {
-                crate::window::network::display(self, ui);
-            }
-            _ => {}
+        let renderer = match self.local_memory.current_tab {
+            WindowTab::SourcesOverview => crate::window::sources::display,
+            WindowTab::CueTimeline => crate::window::cue::display,
+            WindowTab::ControlTransport => crate::window::transport::display,
+            WindowTab::SourcesTime => crate::window::time::display,
+            WindowTab::SourcesPlayback => crate::window::playback::display,
+            WindowTab::CueBeats => crate::window::beats::display,
+            WindowTab::CueEvents => crate::window::events::display,
+            WindowTab::SystemLogs => crate::window::logs::display,
+            WindowTab::SystemPerformance => crate::window::performance::display,
+            WindowTab::SystemAudio => crate::window::settings_audio::display,
+            WindowTab::SystemNetwork => crate::window::network::display,
+            WindowTab::ControlRunEvent => crate::window::run_event::display,
+            WindowTab::ControlFileSystem => crate::window::file_system::display,
+            WindowTab::PreferencesAppearance => crate::window::appearance::display,
+            WindowTab::PreferencesHotkeys => crate::window::hotkeys::display,
+            WindowTab::PreferencesSecurity => crate::window::security::display,
+        };
+        egui::CentralPanel::default().show(ctx, |ui| {
+            (renderer)(self, ui);
         });
     }
 }

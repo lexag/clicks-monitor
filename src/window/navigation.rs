@@ -24,7 +24,7 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
                     WindowTab::CueEvents,
                     WindowTab::ControlTransport,
                     WindowTab::ControlRunEvent,
-                    WindowTab::ControlSystem,
+                    WindowTab::ControlFileSystem,
                     WindowTab::SystemLogs,
                     WindowTab::SystemPerformance,
                     WindowTab::SystemNetwork,

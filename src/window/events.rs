@@ -1,11 +1,11 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::event::{
     Event, EventDescription, JumpModeChange, JumpRequirement, PauseEventBehaviour,
 };
 use egui::{Color32, Grid, ProgressBar, RichText, Widget};
 use std::sync::mpsc::channel;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.label(RichText::new("Events").heading());
         ui.label(format!(
@@ -72,7 +72,7 @@ const COUNTDOWN_BEATS_LIMIT: u16 = 25;
 const DISPLAY_BEATS_LIMIT: u16 = 200;
 const DISPLAY_COUNT_LIMIT: usize = 32;
 
-pub fn render_event_slice(app: &TemplateApp, ui: &mut egui::Ui, event: &Event) {
+pub fn render_event_slice(app: &ClicksMonitorApp, ui: &mut egui::Ui, event: &Event) {
     let loc = event.location;
     let beat = app.status.cue.cue.get_beat(loc);
     if let Some(beat) = beat {

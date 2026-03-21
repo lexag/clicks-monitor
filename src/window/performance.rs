@@ -3,28 +3,32 @@ use std::{collections::VecDeque, ops::Sub};
 use common::protocol::message::Heartbeat;
 use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Vec2};
 
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct PerformanceWindowMemory {
     pub heartbeats: VecDeque<Heartbeat>,
 }
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     if ui.button("Clear history").clicked() {
-        app.layout_settings.performance.heartbeats.clear();
+        app.local_memory.performance.heartbeats.clear();
     }
 
     graph(
         app,
         ui,
-        app.layout_settings
+        app.local_memory
             .performance
             .heartbeats
             .iter()
-            .map(|&hb| (app.heartbeat.system_time.saturating_sub(hb.system_time)) as f32)
+            .map(|&hb| {
+                (app.last_heartbeat
+                    .system_time
+                    .saturating_sub(hb.system_time)) as f32
+            })
             .collect(),
-        app.layout_settings
+        app.local_memory
             .performance
             .heartbeats
             .iter()
@@ -39,13 +43,17 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     graph(
         app,
         ui,
-        app.layout_settings
+        app.local_memory
             .performance
             .heartbeats
             .iter()
-            .map(|&hb| (app.heartbeat.system_time.saturating_sub(hb.system_time)) as f32)
+            .map(|&hb| {
+                (app.last_heartbeat
+                    .system_time
+                    .saturating_sub(hb.system_time)) as f32
+            })
             .collect(),
-        app.layout_settings
+        app.local_memory
             .performance
             .heartbeats
             .iter()
@@ -60,7 +68,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
 }
 
 pub fn graph(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     x: Vec<f32>,
     y: Vec<f32>,

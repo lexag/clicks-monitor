@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use egui::Widget;
 use egui::{vec2, Align2, RichText};
 
@@ -16,7 +16,7 @@ impl TextEntry {
         Self::default()
     }
 
-    pub fn display(&mut self, app: &mut TemplateApp) -> &mut Self {
+    pub fn display(&mut self, app: &mut ClicksMonitorApp) -> &mut Self {
         if !self.is_open {
             return self;
         }

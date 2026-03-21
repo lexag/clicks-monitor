@@ -1,6 +1,6 @@
 use egui::{vec2, Align2, CornerRadius, Rect, RichText, Stroke};
 
-use crate::{app::TemplateApp, theme::Theme};
+use crate::{app::ClicksMonitorApp, theme::Theme};
 use common::{
     beat::Beat,
     event::{Event, EventCursor, EventDescription},
@@ -8,7 +8,7 @@ use common::{
     protocol::request::{ControlAction, Request},
 };
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     // Pre-allocate a side panel
     let side_panel = egui::SidePanel::right("beat-details-panel")
         .resizable(false)
@@ -59,7 +59,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-fn render_cue(app: &mut TemplateApp, ui: &mut egui::Ui) -> usize {
+fn render_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) -> usize {
     let mut hovered_idx = usize::MAX;
     ui.vertical(|ui| {
         // Cue title
@@ -144,7 +144,7 @@ fn render_cue(app: &mut TemplateApp, ui: &mut egui::Ui) -> usize {
                     &app.status,
                 );
             }
-            if app.allow_interaction && resp.clicked() && hovered_idx < usize::MAX / 2 {
+            if app.local_memory.security.allow_interaction && resp.clicked() && hovered_idx < usize::MAX / 2 {
                 app.udp_client
                     .send_msg(Request::ControlAction(if app.status.transport.running {
                         ControlAction::TransportSeekBeat(hovered_idx as u16)
@@ -254,7 +254,7 @@ fn render_beat(
 fn render_event_info(
     theme: Theme,
     ui: &mut egui::Ui,
-    app: &TemplateApp,
+    app: &ClicksMonitorApp,
     idx: usize,
     beat: Beat,
     event: Event,

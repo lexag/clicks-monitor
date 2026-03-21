@@ -1,9 +1,9 @@
 use egui::{vec2, Align2, CornerRadius, Rect, Stroke};
 
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::protocol::request::Request;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal_top(|ui| {
         render_details(app, ui);
         ui.separator();
@@ -14,9 +14,9 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn render_details(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn render_details(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
-        if !app.allow_interaction {
+        if !app.local_memory.security.allow_interaction {
             ui.disable();
         }
         ui.label(egui::RichText::new("JACK").heading());
@@ -52,13 +52,13 @@ pub fn render_details(app: &mut TemplateApp, ui: &mut egui::Ui) {
             ui.end_row();
 
             ui.label("CPU load");
-            ui.label(format!("{:.2}%", app.heartbeat.cpu_use_audio));
+            ui.label(format!("{:.2}%", app.last_heartbeat.cpu_use_audio));
             ui.end_row();
         });
     });
 }
 
-pub fn render_routing_matrix(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn render_routing_matrix(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     let size = 25.0;
     let mut hovered_connection = (0_usize, 0_usize);
     let io = app.status.jack_status.io_size;
@@ -146,7 +146,7 @@ pub fn render_routing_matrix(app: &mut TemplateApp, ui: &mut egui::Ui) {
 }
 
 fn render_routing_tile(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     hovered: bool,
     rect: egui::Rect,

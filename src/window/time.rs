@@ -1,5 +1,5 @@
 use crate::{
-    app::TemplateApp,
+    app::ClicksMonitorApp,
     widget::cassette::{Cassette, CassetteDeck},
 };
 use chrono::{DateTime, NaiveTime, Timelike};
@@ -14,7 +14,7 @@ const BORDER_MARGIN: f32 = 16.0;
 
 const ASPECT_RATIO: f32 = 180.0 / 800.0;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     let size = 800.0 * (ui.available_width() - 4.0 * BORDER_MARGIN - 3.0 * GRID_MARGIN) / 1600.0;
     Grid::new("time-grid")
         .num_columns(2)
@@ -25,7 +25,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             draw_wall_time(app, ui, systime, "Local time".to_string(), size);
 
             // Core wall time
-            let host_time = DateTime::from_timestamp_secs(app.heartbeat.system_time as i64)
+            let host_time = DateTime::from_timestamp_secs(app.last_heartbeat.system_time as i64)
                 .unwrap_or_default()
                 .time();
             draw_wall_time(app, ui, host_time, "Core time".to_string(), size);
@@ -84,7 +84,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
 }
 
 pub fn draw_wall_time(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     time: NaiveTime,
     title: String,
@@ -109,7 +109,7 @@ pub fn draw_wall_time(
 }
 
 pub fn draw_session_timer(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     time: [NaiveTime; 4],
     title: String,
@@ -151,7 +151,7 @@ pub fn draw_session_timer(
 }
 
 pub fn draw_smpte_time(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     time: TimecodeInstant,
     title: String,
@@ -173,7 +173,13 @@ pub fn draw_smpte_time(
     );
 }
 
-pub fn draw_uptime(app: &mut TemplateApp, ui: &mut egui::Ui, time: u64, title: String, size: f32) {
+pub fn draw_uptime(
+    app: &mut ClicksMonitorApp,
+    ui: &mut egui::Ui,
+    time: u64,
+    title: String,
+    size: f32,
+) {
     draw_big_clock_in_frame(
         app,
         ui,
@@ -193,7 +199,7 @@ pub fn draw_uptime(app: &mut TemplateApp, ui: &mut egui::Ui, time: u64, title: S
 }
 
 pub fn draw_big_clock_in_frame<F>(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     text: &str,
     separators: [u8; 3],
@@ -202,7 +208,7 @@ pub fn draw_big_clock_in_frame<F>(
     title: String,
     lower_content: F,
 ) where
-    F: FnOnce(&mut TemplateApp, &mut egui::Ui) + 'static,
+    F: FnOnce(&mut ClicksMonitorApp, &mut egui::Ui) + 'static,
 {
     let bg_col = app.theme.base_ex;
     let c = Cassette::new()

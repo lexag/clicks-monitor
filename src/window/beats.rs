@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{beat::Beat, cue::Cue, event::EventDescription};
 use egui::{
     style::ScrollAnimation, Align, Align2, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2,
@@ -8,7 +8,7 @@ use std::ops::Range;
 const NUM_COL: usize = 7;
 const COL_W: [f32; NUM_COL] = [64.0, 64.0, 64.0, 64.0, 64.0, 64.0, 256.0];
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal_top(|ui| {
         Frame::window(ui.style()).show(ui, |ui| {
             ui.vertical(|ui| {
@@ -31,7 +31,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn beat_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn beat_table(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
         Grid::new("beats-table-header")
             .striped(true)
@@ -90,7 +90,7 @@ pub fn beat_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
 }
 
 pub fn beat_table_cue(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     cue: Cue,
     beat_range: Range<usize>,
@@ -116,7 +116,7 @@ pub fn beat_table_cue(
 }
 
 pub fn beat_table_beat(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     beat: Beat,
     color: Color32,

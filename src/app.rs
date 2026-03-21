@@ -1,7 +1,7 @@
 use common::{
     local::{
         config::{LogItem, SystemConfiguration},
-        status::{AudioSourceState, CombinedStatus, PlaybackState},
+        status::{AudioSourceState, CombinedStatus},
     },
     mem::network::ConnectionInfo,
     protocol::{
@@ -17,19 +17,18 @@ use crate::{
     widget::textentry::TextEntry,
     window::{
         logs::LogWindowMemory, performance::PerformanceWindowMemory,
-        playback::PlaybackWindowMemory, WindowTab,
+        playback::PlaybackWindowMemory, security::SecurityWindowMemory, WindowTab,
     },
 };
-use egui::{FontFamily, FontId, TextStyle};
-use std::collections::BTreeMap;
+use egui::FontFamily;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
-pub struct TemplateApp {
+pub struct ClicksMonitorApp {
     #[serde(skip)]
     pub status: CombinedStatus,
     #[serde(skip)]
-    pub heartbeat: Heartbeat,
+    pub last_heartbeat: Heartbeat,
     #[serde(skip)]
     pub udp_client: UdpClient,
     #[serde(skip)]
@@ -45,34 +44,20 @@ pub struct TemplateApp {
     #[serde(skip)]
     pub log_entries: Vec<LogItem>,
     pub host_connection_info: ConnectionInfo,
-    pub tab: WindowTab,
-    pub layout_settings: LayoutSettings,
+    pub local_memory: LocalMemory,
     pub theme: Theme,
-    pub allow_interaction: bool,
-    pub require_password: bool,
-    pub password: String,
-}
-
-#[derive(serde::Deserialize, serde::Serialize, Default, PartialEq)]
-pub enum ConfigurationEditorTab {
-    Routing,
-    #[default]
-    Network,
-    Channels,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
-pub struct LayoutSettings {
-    pub configuration_editor_tab: ConfigurationEditorTab,
-    pub routing_window_open: bool,
-    pub network_info_window_open: bool,
-    pub channel_edit_window_open: bool,
+pub struct LocalMemory {
+    pub current_tab: WindowTab,
     pub playback: PlaybackWindowMemory,
     pub log: LogWindowMemory,
     pub performance: PerformanceWindowMemory,
+    pub security: SecurityWindowMemory,
 }
 
-impl Default for TemplateApp {
+impl Default for ClicksMonitorApp {
     fn default() -> Self {
         Self {
             system_config: SystemConfiguration::default(),
@@ -81,21 +66,17 @@ impl Default for TemplateApp {
             status: CombinedStatus::default(),
             udp_client: UdpClient::new(),
             rx: unbounded().1,
-            tab: WindowTab::PreferencesSecurity,
-            layout_settings: LayoutSettings::default(),
+            local_memory: LocalMemory::default(),
             theme: theme::DARK,
             host_connection_info: ConnectionInfo::default(),
-            allow_interaction: true,
-            require_password: true,
-            password: String::new(),
             text_entry: TextEntry::new(),
-            heartbeat: Heartbeat::default(),
+            last_heartbeat: Heartbeat::default(),
             log_entries: vec![],
         }
     }
 }
 
-impl TemplateApp {
+impl ClicksMonitorApp {
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     /// Called once before the first frame.
@@ -177,13 +158,13 @@ impl TemplateApp {
                 self.system_config = config;
             }
             Message::Small(SmallMessage::Heartbeat(heartbeat)) => {
-                self.heartbeat = heartbeat;
-                self.layout_settings
+                self.last_heartbeat = heartbeat;
+                self.local_memory
                     .performance
                     .heartbeats
                     .push_back(heartbeat.clone());
-                while self.layout_settings.performance.heartbeats.len() > 300 {
-                    self.layout_settings.performance.heartbeats.pop_front();
+                while self.local_memory.performance.heartbeats.len() > 300 {
+                    self.local_memory.performance.heartbeats.pop_front();
                 }
             }
             Message::Large(LargeMessage::Log(item)) => self.log_entries.push(item),
@@ -222,10 +203,10 @@ impl TemplateApp {
     }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for ClicksMonitorApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         self.udp_client
-            .send_msg(Request::Unsubscribe(self.udp_client.local.clone()));
+            .send_msg(Request::Unsubscribe(self.udp_client.local));
     }
     /// Called by the frame work to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
@@ -254,7 +235,7 @@ impl eframe::App for TemplateApp {
                 crate::window::navigation::display(self, ui);
             });
 
-        egui::CentralPanel::default().show(ctx, |ui| match self.tab {
+        egui::CentralPanel::default().show(ctx, |ui| match self.local_memory.current_tab {
             WindowTab::SourcesOverview => {
                 crate::window::sources::display(self, ui);
             }
@@ -288,42 +269,7 @@ impl eframe::App for TemplateApp {
             WindowTab::SystemNetwork => {
                 crate::window::network::display(self, ui);
             }
-            _ => {
-                let width = ui.available_width() / 3.0;
-                ui.horizontal_top(|ui| {
-                    ui.vertical(|ui| {
-                        ui.set_width(width);
-                        crate::window::connection::display(self, ui);
-                        ui.separator();
-                        if self.udp_client.active {
-                            crate::window::navigation::configuration_tab_buttons(self, ui);
-                            ui.separator();
-                            match self.layout_settings.configuration_editor_tab {
-                                ConfigurationEditorTab::Routing => {
-                                    crate::window::jack::render_routing_matrix(self, ui)
-                                }
-                                ConfigurationEditorTab::Network => {
-                                    crate::window::connection::details(self, ui);
-                                    crate::window::connection::clients_table(self, ui);
-                                }
-                                ConfigurationEditorTab::Channels => {
-                                    crate::window::sources::configuration_window(self, ui)
-                                }
-                            }
-                        }
-                    });
-                    ui.separator();
-                    ui.vertical(|ui| {
-                        ui.set_width(width);
-                        crate::window::system_config::display(self, ui);
-                    });
-                    ui.separator();
-                    ui.vertical(|ui| {
-                        ui.set_width(width);
-                        crate::window::local_config::display(self, ui);
-                    });
-                });
-            }
+            _ => {}
         });
 
         self.text_entry = self.text_entry.clone().display(self).clone();

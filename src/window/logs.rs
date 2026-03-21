@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{
     local::config::{LogContext, LogKind},
     mem::time::format_hms,
@@ -11,29 +11,26 @@ pub struct LogWindowMemory {
     pub context_filter: LogContext,
 }
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
         ui.label(RichText::new("System Log").heading());
         ui.horizontal(|ui| {
             ui.label("Filter by log type:");
             for (label, kind) in LogKind::all().iter_names() {
                 if ui
-                    .selectable_label(app.layout_settings.log.kind_filter.contains(kind), label)
+                    .selectable_label(app.local_memory.log.kind_filter.contains(kind), label)
                     .clicked()
                 {
-                    app.layout_settings.log.kind_filter.toggle(kind);
+                    app.local_memory.log.kind_filter.toggle(kind);
                 }
             }
             ui.label("Filter by log context:");
             for (label, context) in LogContext::all().iter_names() {
                 if ui
-                    .selectable_label(
-                        app.layout_settings.log.context_filter.contains(context),
-                        label,
-                    )
+                    .selectable_label(app.local_memory.log.context_filter.contains(context), label)
                     .clicked()
                 {
-                    app.layout_settings.log.context_filter.toggle(context);
+                    app.local_memory.log.context_filter.toggle(context);
                 };
             }
         });
@@ -55,12 +52,8 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                         ui.label("Message");
                         ui.end_row();
                         for entry in &app.log_entries {
-                            if !app.layout_settings.log.kind_filter.contains(entry.kind)
-                                || !app
-                                    .layout_settings
-                                    .log
-                                    .context_filter
-                                    .contains(entry.context)
+                            if !app.local_memory.log.kind_filter.contains(entry.kind)
+                                || !app.local_memory.log.context_filter.contains(entry.context)
                             {
                                 continue;
                             }

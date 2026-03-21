@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{
     local::{
         config::{ChannelAssignment, ChannelConfiguration, SystemConfigurationChange},
@@ -17,7 +17,7 @@ const MSG_NO_PROCESSOR: &str = "Sources are unavailable when the audio processor
 const MSG_NO_INTERACTION: &str =
     "Editing sources is disable when client is locked. Unlock client to access settings.";
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ScrollArea::horizontal()
         .drag_to_scroll(true)
         .show(ui, |ui| {
@@ -54,7 +54,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                 ui.horizontal_centered(|ui| {
                     if ui
                         .add_enabled(
-                            app.allow_interaction,
+                            app.local_memory.security.allow_interaction,
                             egui::DragValue::new(&mut app.sources_gains[i])
                                 .range(-24.0f32..=12.0f32)
                                 .speed(0.01)
@@ -193,7 +193,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
         });
 }
 
-pub fn configuration_window(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn configuration_window(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     if egui::Button::new("Apply").ui(ui).clicked() {
         for i in 0..32 {
             app.udp_client.send_msg(Request::ChangeConfiguration(
@@ -249,7 +249,7 @@ pub fn configuration_window(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn channel_strip(app: &mut TemplateApp, ui: &mut egui::Ui, idx: usize, width: f32) {
+pub fn channel_strip(app: &mut ClicksMonitorApp, ui: &mut egui::Ui, idx: usize, width: f32) {
     let conf: ChannelConfiguration = app.system_config.channels[idx];
     Frame::group(ui.style()).show(ui, |ui| {
         ui.vertical_centered_justified(|ui| {
@@ -298,7 +298,7 @@ pub fn channel_strip(app: &mut TemplateApp, ui: &mut egui::Ui, idx: usize, width
                 min_slider,
             )
             .drag_stopped()
-                && app.allow_interaction
+                && app.local_memory.security.allow_interaction
             {
                 app.udp_client
                     .send_msg(Request::ControlAction(ControlAction::SetChannelGain(
@@ -389,7 +389,7 @@ pub fn channel_strip(app: &mut TemplateApp, ui: &mut egui::Ui, idx: usize, width
 }
 
 pub fn custom_volume_slider(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     width: f32,
     height: f32,
@@ -453,7 +453,7 @@ pub fn custom_volume_slider(
         StrokeKind::Middle,
     );
 
-    if resp.dragged() && app.allow_interaction {
+    if resp.dragged() && app.local_memory.security.allow_interaction {
         *val -= resp.drag_delta().y / path_rect.height() * (max_val - min_val);
         *val = val.clamp(min_val, max_val)
     }

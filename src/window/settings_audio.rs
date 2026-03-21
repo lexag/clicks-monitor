@@ -1,8 +1,8 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{local::config::SystemConfigurationChange, protocol::request::Request};
 use egui::Widget;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     egui::Grid::new("audio-system-settings")
         .num_columns(2)
         .show(ui, |ui| {

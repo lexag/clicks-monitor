@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{
     event::JumpModeChange,
     protocol::request::{ControlAction, Request},
@@ -13,11 +13,11 @@ pub fn big_button(ui: &mut egui::Ui, label: &str, fill: Color32, size: Vec2) -> 
     )
 }
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
         let size = ui.available_size() / Vec2::new(4.0, 2.0);
         egui::Grid::new("control-grid").show(ui, |ui| {
-            if !app.allow_interaction {
+            if !app.local_memory.security.allow_interaction {
                 ui.label("Transport control is disabled. Unlock the client to access controls.");
                 return;
             }
@@ -119,7 +119,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn control_field(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn control_field(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     let mut keyboard_input = String::new();
     ui.add(egui::TextEdit::singleline(&mut keyboard_input));
     //FIXME: ugly but i'm in a hurry

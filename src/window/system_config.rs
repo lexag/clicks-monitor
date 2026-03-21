@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{
     local::config::{LogContext, LogKind, SystemConfigurationChange},
     protocol::request::Request,
@@ -6,7 +6,7 @@ use common::{
 use egui::Widget;
 use itertools::Itertools;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal_top(|ui| {
         ui.vertical(|ui| {
             ui.label(egui::RichText::new("System Settings").heading());
@@ -17,7 +17,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                 );
                 return;
             }
-            if !app.allow_interaction {
+            if !app.local_memory.security.allow_interaction {
                 ui.disable();
             }
 

@@ -1,4 +1,4 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::event::EventDescription;
 use common::local::status::{AudioSourceState, PlaybackState};
 use common::protocol::request::{ControlAction, Request};
@@ -12,37 +12,37 @@ pub struct PlaybackWindowMemory {
     pub clip_cue_list: HashMap<u8, u16>,
 }
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.label(RichText::new("Playback").heading());
         ui.horizontal(|ui| {
             ui.set_width(500.0);
-            if app.layout_settings.playback.clip_cue_list.is_empty() {
+            if app.local_memory.playback.clip_cue_list.is_empty() {
                 ui.disable()
             }
             ui.label(format!(
                 "{} clip(s) cued",
-                app.layout_settings.playback.clip_cue_list.len(),
+                app.local_memory.playback.clip_cue_list.len(),
             ));
-            if ui.button("Play").clicked() && app.allow_interaction {
+            if ui.button("Play").clicked() && app.local_memory.security.allow_interaction {
                 play_clip_cue(app, ui);
             };
-            if ui.button("Once").clicked() && app.allow_interaction {
+            if ui.button("Once").clicked() && app.local_memory.security.allow_interaction {
                 play_clip_cue(app, ui);
-                app.layout_settings.playback.clip_cue_list.clear();
+                app.local_memory.playback.clip_cue_list.clear();
             };
-            if ui.button("Stop").clicked() && app.allow_interaction {
+            if ui.button("Stop").clicked() && app.local_memory.security.allow_interaction {
                 play_clip_cue(app, ui);
             };
-            if ui.button("Clear").clicked() && app.allow_interaction {
-                app.layout_settings.playback.clip_cue_list.clear();
+            if ui.button("Clear").clicked() && app.local_memory.security.allow_interaction {
+                app.local_memory.playback.clip_cue_list.clear();
             };
         });
         if Button::new(RichText::new("PANIC (Stop all)").monospace())
             .fill(app.theme.err_prim_wk)
             .ui(ui)
             .clicked()
-            && app.allow_interaction
+            && app.local_memory.security.allow_interaction
         {
             stop_all(app, ui);
         };
@@ -67,7 +67,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
         });
 }
 
-pub fn render_channel_slice(app: &mut TemplateApp, ui: &mut egui::Ui, index: usize) {
+pub fn render_channel_slice(app: &mut ClicksMonitorApp, ui: &mut egui::Ui, index: usize) {
     let channel_name = app.system_config.channels[index + 2].name.str().to_string();
     let source = if let AudioSourceState::PlaybackStatus(status) = app.status.sources[index + 2] {
         status
@@ -104,7 +104,7 @@ pub fn render_channel_slice(app: &mut TemplateApp, ui: &mut egui::Ui, index: usi
     .fill(if source.playing {
         app.theme.active_prim
     } else if app
-        .layout_settings
+        .local_memory
         .playback
         .clip_cue_list
         .contains_key(&source.channel)
@@ -141,7 +141,7 @@ pub fn render_channel_slice(app: &mut TemplateApp, ui: &mut egui::Ui, index: usi
 }
 
 pub fn render_clip(
-    app: &mut TemplateApp,
+    app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
     clip: u16,
     selected: bool,
@@ -156,7 +156,7 @@ pub fn render_clip(
         .fill(if selected {
             app.theme.active_prim
         } else if app
-            .layout_settings
+            .local_memory
             .playback
             .clip_cue_list
             .get(&status.channel)
@@ -183,8 +183,8 @@ pub fn render_clip(
                     .selectable(false)
                     .ui(ui);
 
-                if cue_button.clicked() && app.allow_interaction {
-                    app.layout_settings
+                if cue_button.clicked() && app.local_memory.security.allow_interaction {
+                    app.local_memory
                         .playback
                         .clip_cue_list
                         .insert(status.channel, clip);
@@ -199,7 +199,7 @@ pub fn render_clip(
                 .sense(Sense::click())
                 .ui(ui);
 
-                if play_button.double_clicked() && app.allow_interaction {
+                if play_button.double_clicked() && app.local_memory.security.allow_interaction {
                     app.udp_client
                         .send_msg(Request::ControlAction(ControlAction::RunEvent(
                             if status.playing && selected {
@@ -221,8 +221,8 @@ pub fn render_clip(
         });
 }
 
-pub fn play_clip_cue(app: &mut TemplateApp, ui: &mut egui::Ui) {
-    for (channel, clip) in app.layout_settings.playback.clip_cue_list.clone() {
+pub fn play_clip_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    for (channel, clip) in app.local_memory.playback.clip_cue_list.clone() {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(
                 EventDescription::PlaybackEvent {
@@ -234,7 +234,7 @@ pub fn play_clip_cue(app: &mut TemplateApp, ui: &mut egui::Ui) {
     }
 }
 
-pub fn stop_all(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn stop_all(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     for i in 0..30 {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(

@@ -5,9 +5,9 @@ use common::{
 };
 use egui::{Color32, RichText, Widget};
 
-use crate::{app::TemplateApp, theme, window::WindowTab};
+use crate::{app::ClicksMonitorApp, theme, window::WindowTab};
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     egui::menu::bar(ui, |ui| {
         ui.menu_button("File", |ui| {
             if ui.button("Quit").clicked() {
@@ -43,31 +43,40 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                         .ui(ui)
                         .clicked()
                     {
-                        app.tab = tab
+                        app.local_memory.current_tab = tab
                     }
                 }
             });
             ui.separator();
             if ui.button("Lock").clicked() {
-                app.allow_interaction = false;
+                app.local_memory.security.allow_interaction = false;
             }
             if ui
-                .button("Unlock".to_owned() + if app.require_password { "..." } else { "" })
+                .button(
+                    "Unlock".to_owned()
+                        + if app.local_memory.security.require_password {
+                            "..."
+                        } else {
+                            ""
+                        },
+                )
                 .clicked()
             {
-                if app.require_password {
+                if app.local_memory.security.require_password {
                     app.text_entry.open("Password").password(true);
                 } else {
-                    app.allow_interaction = true;
+                    app.local_memory.security.allow_interaction = true;
                 }
             }
-            if app.text_entry.submitted("Password") && app.text_entry.get_text() == app.password {
-                app.allow_interaction = true;
+            if app.text_entry.submitted("Password")
+                && app.text_entry.get_text() == app.local_memory.security.password
+            {
+                app.local_memory.security.allow_interaction = true;
                 app.text_entry.done()
             }
         });
         ui.menu_button("Help", |ui| {
-            ui.label(format!("Monitor version {}", TemplateApp::VERSION));
+            ui.label(format!("Monitor version {}", ClicksMonitorApp::VERSION));
             ui.label(format!("Common version {}", common::VERSION));
         });
 
@@ -95,11 +104,11 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
             }
             ui.label(format!(
                 "Common version: {}",
-                app.heartbeat.common_version.str()
+                app.last_heartbeat.common_version.str()
             ));
             ui.label(format!(
                 "System version: {}",
-                app.heartbeat.system_version.str()
+                app.last_heartbeat.system_version.str()
             ));
         });
 
@@ -156,7 +165,7 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
 
         // Clock
         let system_time = chrono::prelude::Utc::now().timestamp_micros() as u64;
-        let host_time = app.heartbeat.system_time;
+        let host_time = app.last_heartbeat.system_time;
         let diff = system_time.abs_diff(host_time * 1000000);
         let color = if host_time > 0 {
             if diff < 5 * 1000000 {
@@ -188,23 +197,25 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
 
         // Performance
         ui.colored_label(
-            if app.heartbeat.cpu_use_audio > 80.0 || app.heartbeat.process_freq_main < 10000 {
+            if app.last_heartbeat.cpu_use_audio > 80.0
+                || app.last_heartbeat.process_freq_main < 10000
+            {
                 app.theme.err_prim
             } else {
                 app.theme.active_prim
             },
             egui::RichText::new(format!(
                 "PERF: {:2.1}%  {}kHz",
-                app.heartbeat.cpu_use_audio,
-                app.heartbeat.process_freq_main / 1000
+                app.last_heartbeat.cpu_use_audio,
+                app.last_heartbeat.process_freq_main / 1000
             ))
             .monospace(),
         );
 
         // Interaction lock
-        if !app.allow_interaction {
+        if !app.local_memory.security.allow_interaction {
             ui.colored_label(
-                if app.require_password {
+                if app.local_memory.security.require_password {
                     app.theme.active_prim
                 } else {
                     app.theme.warn_prim
@@ -217,28 +228,28 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-fn transport_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
-    if !app.allow_interaction {
+fn transport_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    if !app.local_memory.security.allow_interaction {
         ui.disable();
     }
     ui.response().on_disabled_hover_text(
         "Transport controls are disabled when client is locked. Unlock client to access.",
     );
-    if ui.button("Start").clicked() && app.allow_interaction {
+    if ui.button("Start").clicked() && app.local_memory.security.allow_interaction {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::TransportStart));
     }
-    if ui.button("Stop").clicked() && app.allow_interaction {
+    if ui.button("Stop").clicked() && app.local_memory.security.allow_interaction {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::TransportStop));
     }
-    if ui.button("Zero").clicked() && app.allow_interaction {
+    if ui.button("Zero").clicked() && app.local_memory.security.allow_interaction {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::TransportZero));
     }
 }
 
-pub fn cues_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn cues_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     egui::Grid::new("cues-menu-grid").show(ui, |ui| {
         for (i, cue) in app.status.show.cues.iter().enumerate() {
             let color = if i == app.status.cue.cue_idx as usize {
@@ -250,7 +261,7 @@ pub fn cues_menu(app: &mut TemplateApp, ui: &mut egui::Ui) {
             ui.label(format!("{:0>3}", i));
             ui.colored_label(color, cue.metadata.human_ident.str());
             ui.colored_label(color, cue.metadata.name.str());
-            if ui.add_enabled(app.allow_interaction, egui::Button::new("GOTO").small()).on_disabled_hover_text("Transport controls are disabled when client is locked. Unlock client to change cues.").clicked() {
+            if ui.add_enabled(app.local_memory.security.allow_interaction, egui::Button::new("GOTO").small()).on_disabled_hover_text("Transport controls are disabled when client is locked. Unlock client to change cues.").clicked() {
                 app.udp_client.send_msg(Request::ControlAction(
                     ControlAction::LoadCueByIndex(i as u8),
                 ));

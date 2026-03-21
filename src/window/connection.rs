@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 use common::{
     local::status::CombinedStatus,
     mem::{
@@ -11,12 +11,12 @@ use common::{
 };
 use egui::Widget;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.label(egui::RichText::new("Connection").heading());
     settings(app, ui);
 }
 
-pub fn clients_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn clients_table(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
         ui.label(egui::RichText::new("Active Clients").heading());
         egui::Grid::new("clients-table")
@@ -40,8 +40,8 @@ pub fn clients_table(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn settings(app: &mut TemplateApp, ui: &mut egui::Ui) {
-    if !app.allow_interaction {
+pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    if !app.local_memory.security.allow_interaction {
         ui.disable();
     }
     egui::Grid::new("connection_settings")
@@ -82,7 +82,7 @@ pub fn settings(app: &mut TemplateApp, ui: &mut egui::Ui) {
                     "Connect"
                 })
                 .clicked()
-                && app.allow_interaction
+                && app.local_memory.security.allow_interaction
             {
                 match app.udp_client.connect(
                     app.udp_client.local.identifier,
@@ -109,7 +109,7 @@ pub fn settings(app: &mut TemplateApp, ui: &mut egui::Ui) {
         );
 }
 
-pub fn details(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn details(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     //    egui::Grid::new("connection_details")
     //        .num_columns(2)
     //        .max_col_width(ui.available_width() / 2.0)

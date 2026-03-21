@@ -10,9 +10,9 @@ use common::mem::{
 };
 use egui::{Align2, CentralPanel, Color32, FontId, Painter, Pos2, RichText, Sense, Stroke, Vec2};
 
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     egui::SidePanel::right("network-details-panel").show_inside(ui, |ui| {
         client_data_use(app, ui);
     });
@@ -34,7 +34,7 @@ fn format_data_amount(bytes: usize) -> String {
     format!("{} {}", val.round(), SI[si_idx as usize])
 }
 
-pub fn client_data_use(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn client_data_use(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.label(RichText::new("This client").heading());
     egui::Grid::new("connection-messages").show(ui, |ui| {
         ui.label("Status Message");
@@ -79,7 +79,7 @@ pub fn client_data_use(app: &mut TemplateApp, ui: &mut egui::Ui) {
     });
 }
 
-pub fn network_galaxy(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn network_galaxy(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     let size = ui.available_size();
     let top_left = ui.cursor().min;
     let (res, p) = ui.allocate_painter(size, Sense::click_and_drag());

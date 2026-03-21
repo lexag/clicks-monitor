@@ -1,8 +1,8 @@
-use crate::app::TemplateApp;
+use crate::app::ClicksMonitorApp;
 
-pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.vertical(|ui| {
-        if !app.allow_interaction {
+        if !app.local_memory.security.allow_interaction {
             ui.disable();
         }
         ui.label(egui::RichText::new("Client Settings").heading());
@@ -12,11 +12,11 @@ pub fn display(app: &mut TemplateApp, ui: &mut egui::Ui) {
                 ui.label(egui::RichText::new("Client locking").underline());
                 ui.end_row();
                 ui.label("Require password");
-                ui.checkbox(&mut app.require_password, "");
+                ui.checkbox(&mut app.local_memory.security.require_password, "");
                 ui.end_row();
-                let textbox = egui::TextEdit::singleline(&mut app.password)
+                let textbox = egui::TextEdit::singleline(&mut app.local_memory.security.password)
                     .password(!ui.label("Password [view]").is_pointer_button_down_on());
-                ui.add_enabled(app.require_password, textbox);
+                ui.add_enabled(app.local_memory.security.require_password, textbox);
                 ui.end_row();
             });
     });

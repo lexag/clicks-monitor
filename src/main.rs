@@ -29,6 +29,6 @@ pub fn main() -> eframe::Result {
     eframe::run_native(
         "eframe template",
         native_options,
-        Box::new(|cc| Ok(Box::new(app::TemplateApp::new(cc, udp_client)))),
+        Box::new(|cc| Ok(Box::new(app::ClicksMonitorApp::new(cc, udp_client)))),
     )
 }

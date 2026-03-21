@@ -9,6 +9,7 @@ pub mod navigation;
 pub mod network;
 pub mod performance;
 pub mod playback;
+pub mod security;
 pub mod settings_audio;
 pub mod sources;
 pub mod statusbar;
@@ -16,9 +17,10 @@ pub mod system_config;
 pub mod time;
 pub mod transport;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Default)]
 pub enum WindowTab {
     SourcesOverview,
+    #[default]
     SourcesTime,
     SourcesPlayback,
     CueTimeline,

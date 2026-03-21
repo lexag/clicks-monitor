@@ -5,7 +5,6 @@ pub mod cue;
 pub mod events;
 pub mod file_system;
 pub mod hotkeys;
-pub mod local_config;
 pub mod logs;
 pub mod navigation;
 pub mod network;
@@ -16,7 +15,6 @@ pub mod security;
 pub mod settings_audio;
 pub mod sources;
 pub mod statusbar;
-pub mod system_config;
 pub mod time;
 pub mod transport;
 

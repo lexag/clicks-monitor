@@ -7,4 +7,24 @@ pub struct SecurityWindowMemory {
     pub password: String,
 }
 
-pub fn display(_app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {}
+pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    ui.vertical(|ui| {
+        if !app.local_memory.security.allow_interaction {
+            ui.disable();
+        }
+        ui.label(egui::RichText::new("Client Settings").heading());
+        egui::Grid::new("client-settings")
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.label(egui::RichText::new("Client locking").underline());
+                ui.end_row();
+                ui.label("Require password");
+                ui.checkbox(&mut app.local_memory.security.require_password, "");
+                ui.end_row();
+                let textbox = egui::TextEdit::singleline(&mut app.local_memory.security.password)
+                    .password(!ui.label("Password [view]").is_pointer_button_down_on());
+                ui.add_enabled(app.local_memory.security.require_password, textbox);
+                ui.end_row();
+            });
+    });
+}

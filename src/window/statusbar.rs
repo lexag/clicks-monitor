@@ -32,22 +32,6 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
                         }
                     }
                 });
-                ui.menu_button("Tab", |ui| {
-                    for (tab, text, short_text) in [
-                        (WindowTab::SourcesOverview, "Sources", "S"),
-                        (WindowTab::CueTimeline, "Cue", "S"),
-                        (WindowTab::ControlTransport, "Transport", "T"),
-                        (WindowTab::PreferencesSecurity, "Options", "O"),
-                    ] {
-                        if egui::Button::new(text)
-                            .shortcut_text(short_text)
-                            .ui(ui)
-                            .clicked()
-                        {
-                            app.local_memory.current_tab = tab
-                        }
-                    }
-                });
                 ui.separator();
                 if ui.button("Lock").clicked() {
                     app.local_memory.security.allow_interaction = false;

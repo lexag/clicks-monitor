@@ -16,11 +16,13 @@ use crate::{
     udp::UdpClient,
     widget::textentry::TextEntry,
     window::{
-        logs::LogWindowMemory, performance::PerformanceWindowMemory,
-        playback::PlaybackWindowMemory, security::SecurityWindowMemory, WindowTab,
+        logs::LogWindowMemory, navigation::NavigationWindowMemory,
+        performance::PerformanceWindowMemory, playback::PlaybackWindowMemory,
+        security::SecurityWindowMemory, DockTabRenderer, WindowTab,
     },
 };
 use egui::{Context, FontFamily};
+use egui_dock::{DockState, TabViewer};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -48,13 +50,27 @@ pub struct ClicksMonitorApp {
     pub theme: Theme,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct LocalMemory {
-    pub current_tab: WindowTab,
     pub playback: PlaybackWindowMemory,
     pub log: LogWindowMemory,
     pub performance: PerformanceWindowMemory,
     pub security: SecurityWindowMemory,
+    pub navigation: NavigationWindowMemory,
+    pub dock_state: egui_dock::DockState<WindowTab>,
+}
+
+impl Default for LocalMemory {
+    fn default() -> Self {
+        Self {
+            playback: PlaybackWindowMemory::default(),
+            log: LogWindowMemory::default(),
+            navigation: NavigationWindowMemory::default(),
+            performance: PerformanceWindowMemory::default(),
+            security: SecurityWindowMemory::default(),
+            dock_state: DockState::new(vec![WindowTab::SourcesTime]),
+        }
+    }
 }
 
 impl Default for ClicksMonitorApp {
@@ -251,26 +267,24 @@ impl ClicksMonitorApp {
     }
 
     fn render_main_panel(&mut self, ctx: &Context) {
-        let renderer = match self.local_memory.current_tab {
-            WindowTab::SourcesOverview => crate::window::sources::display,
-            WindowTab::CueTimeline => crate::window::cue::display,
-            WindowTab::ControlTransport => crate::window::transport::display,
-            WindowTab::SourcesTime => crate::window::time::display,
-            WindowTab::SourcesPlayback => crate::window::playback::display,
-            WindowTab::CueBeats => crate::window::beats::display,
-            WindowTab::CueEvents => crate::window::events::display,
-            WindowTab::SystemLogs => crate::window::logs::display,
-            WindowTab::SystemPerformance => crate::window::performance::display,
-            WindowTab::SystemAudio => crate::window::settings_audio::display,
-            WindowTab::SystemNetwork => crate::window::network::display,
-            WindowTab::ControlRunEvent => crate::window::run_event::display,
-            WindowTab::ControlFileSystem => crate::window::file_system::display,
-            WindowTab::PreferencesAppearance => crate::window::appearance::display,
-            WindowTab::PreferencesHotkeys => crate::window::hotkeys::display,
-            WindowTab::PreferencesSecurity => crate::window::security::display,
-        };
         egui::CentralPanel::default().show(ctx, |ui| {
-            (renderer)(self, ui);
+            if self.local_memory.navigation.multiwindow_mode {
+                let mut dock_state = self.local_memory.dock_state.clone();
+                let dock = egui_dock::DockArea::new(&mut dock_state);
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    dock.show_add_popup(!self.local_memory.navigation.lock_navigation)
+                        .show_add_buttons(!self.local_memory.navigation.lock_navigation)
+                        .draggable_tabs(!self.local_memory.navigation.lock_navigation)
+                        .show_close_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_leaf_close_all_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_leaf_collapse_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_inside(ui, &mut DockTabRenderer { app_state: self });
+                });
+                self.local_memory.dock_state = dock_state;
+            } else {
+                let mut tab = self.local_memory.navigation.current_single_tab.clone();
+                (DockTabRenderer { app_state: self }).ui(ui, &mut tab);
+            }
         });
     }
 }

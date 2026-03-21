@@ -83,7 +83,7 @@ impl UdpClient {
         let ci = ConnectionInfo {
             identifier: StaticString::new(""),
             address: IpAddress::from_address_str(&self.socket.peer_addr().unwrap().to_string())
-                .expect("pls"),
+                .unwrap_or_default(),
             end: ConnectionEnd::Remote,
         };
         Ok(ci)

@@ -3,7 +3,7 @@ use common::{
         config::{LogItem, SystemConfiguration},
         status::{AudioSourceState, CombinedStatus},
     },
-    mem::network::ConnectionInfo,
+    mem::{network::ConnectionInfo, typeflags::MessageType},
     protocol::{
         message::{Heartbeat, LargeMessage, Message, SmallMessage},
         request::Request,
@@ -105,66 +105,93 @@ impl ClicksMonitorApp {
         self.theme = theme;
     }
 
-    pub fn handle_udp_message(&mut self, msg: Message, size: usize) {
-        self.udp_client.active = true;
-        let tally_pre = self
+    fn update_rx_tally(&mut self, msg_type: MessageType, size: usize) {
+        let entry = self
             .udp_client
             .rx_message_tally
-            .get(&msg.to_type())
-            .unwrap_or(&(0, 0));
-        self.udp_client
-            .rx_message_tally
-            .insert(msg.to_type(), (tally_pre.0 + 1, tally_pre.1 + size));
+            .entry(msg_type)
+            .or_insert((0, 0));
+
+        entry.0 += 1;
+        entry.1 += size;
+    }
+    fn handle_small_message(&mut self, msg: SmallMessage) {
         match msg {
-            Message::Small(SmallMessage::TransportData(status)) => {
+            SmallMessage::TransportData(status) => {
                 self.status.transport = status;
             }
-            Message::Small(SmallMessage::PlaybackData(status)) => {
+            SmallMessage::PlaybackData(status) => {
                 self.status.sources[2 + status.channel as usize] =
                     AudioSourceState::PlaybackStatus(status);
             }
-            Message::Small(SmallMessage::TimecodeData(status)) => {
+            SmallMessage::TimecodeData(status) => {
                 self.status.sources[1] = AudioSourceState::TimeStatus(status);
             }
-            Message::Small(SmallMessage::BeatData(beat)) => {
+            SmallMessage::BeatData(beat) => {
                 self.status.sources[0] = AudioSourceState::BeatStatus(beat);
             }
-            Message::Large(LargeMessage::CueData(cue)) => {
-                self.status.cue = cue;
-            }
-            Message::Large(LargeMessage::ShowData(show)) => {
-                self.status.show = show;
-            }
-            Message::Large(LargeMessage::PlaybackHandlerChanged(status)) => {
-                self.status.playback_status = status;
-            }
-            Message::Large(LargeMessage::NetworkChanged(status)) => {
-                self.status.network_status = status;
-            }
-            Message::Large(LargeMessage::JACKStateChanged(status)) => {
-                self.status.jack_status = status;
-            }
-            Message::Small(SmallMessage::ShutdownOccured) => {
+            SmallMessage::ShutdownOccured => {
                 self.udp_client.active = false;
             }
-            Message::Large(LargeMessage::ConfigurationChanged(config)) => {
-                for i in 0..self.sources_gains.len() {
-                    self.sources_gains[i] = config.channels[i].gain;
-                }
-                self.system_config = config;
+            SmallMessage::Heartbeat(heartbeat) => {
+                self.handle_heartbeat(heartbeat);
             }
-            Message::Small(SmallMessage::Heartbeat(heartbeat)) => {
-                self.last_heartbeat = heartbeat;
-                self.local_memory
-                    .performance
-                    .heartbeats
-                    .push_back(heartbeat);
-                while self.local_memory.performance.heartbeats.len() > 300 {
-                    self.local_memory.performance.heartbeats.pop_front();
-                }
-            }
-            Message::Large(LargeMessage::Log(item)) => self.log_entries.push(item),
             _ => {}
+        }
+    }
+
+    fn handle_large_message(&mut self, msg: LargeMessage) {
+        match msg {
+            LargeMessage::CueData(cue) => {
+                self.status.cue = cue;
+            }
+            LargeMessage::ShowData(show) => {
+                self.status.show = show;
+            }
+            LargeMessage::PlaybackHandlerChanged(status) => {
+                self.status.playback_status = status;
+            }
+            LargeMessage::NetworkChanged(status) => {
+                self.status.network_status = status;
+            }
+            LargeMessage::JACKStateChanged(status) => {
+                self.status.jack_status = status;
+            }
+            LargeMessage::ConfigurationChanged(config) => {
+                self.apply_config(config);
+            }
+            LargeMessage::Log(item) => {
+                self.log_entries.push(item);
+            }
+        }
+    }
+
+    fn handle_heartbeat(&mut self, heartbeat: Heartbeat) {
+        self.last_heartbeat = heartbeat;
+
+        let heartbeats = &mut self.local_memory.performance.heartbeats;
+        heartbeats.push_back(heartbeat);
+
+        while heartbeats.len() > 300 {
+            heartbeats.pop_front();
+        }
+    }
+
+    fn apply_config(&mut self, config: SystemConfiguration) {
+        for (i, channel) in config.channels.iter().enumerate() {
+            self.sources_gains[i] = channel.gain;
+        }
+
+        self.system_config = config;
+    }
+
+    fn handle_udp_message(&mut self, msg: Message, size: usize) {
+        self.udp_client.active = true;
+        self.update_rx_tally(msg.to_type(), size);
+
+        match msg {
+            Message::Small(s) => self.handle_small_message(s),
+            Message::Large(l) => self.handle_large_message(l),
         }
     }
 

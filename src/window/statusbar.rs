@@ -2,9 +2,9 @@ use common::{
     mem::time::format_hms,
     protocol::request::{ControlAction, Request},
 };
-use egui::{containers::menu::MenuConfig, Color32, MenuBar, PopupCloseBehavior, RichText};
+use egui::{containers::menu::MenuConfig, MenuBar, PopupCloseBehavior, RichText};
 
-use crate::{app::ClicksMonitorApp, theme};
+use crate::app::ClicksMonitorApp;
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     MenuBar::new()

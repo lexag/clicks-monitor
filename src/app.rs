@@ -12,6 +12,7 @@ use common::{
 use crossbeam_channel::{unbounded, Receiver};
 
 use crate::{
+    actions::{ ActionID},
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
@@ -23,6 +24,8 @@ use crate::{
 };
 use egui::{Context, FontFamily};
 use egui_dock::{DockState, TabViewer};
+use egui_keybind::{Shortcut};
+use std::collections::HashMap;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -45,6 +48,7 @@ pub struct ClicksMonitorApp {
     pub system_config: SystemConfiguration,
     #[serde(skip)]
     pub log_entries: Vec<LogItem>,
+    pub shortcuts: HashMap<ActionID, Shortcut>,
     pub host_connection_info: ConnectionInfo,
     pub local_memory: LocalMemory,
     pub theme: Theme,
@@ -78,6 +82,7 @@ impl Default for LocalMemory {
 impl Default for ClicksMonitorApp {
     fn default() -> Self {
         Self {
+            shortcuts: crate::actions::all_default_shortcuts(),
             system_config: SystemConfiguration::default(),
             sources_gains: vec![0.0f32; 32],
             ctx: egui::Context::default(),
@@ -305,6 +310,25 @@ impl ClicksMonitorApp {
             }
         });
     }
+
+    pub fn handle_keybinds(&mut self) {
+        let keys = self.shortcuts.keys().cloned().collect::<Vec<ActionID>>();
+        for action in keys {
+            let shortcut = self.shortcuts.get(&action);
+        
+            if let Some(shortcut) = shortcut &&
+
+            let Some(kbd) = shortcut.keyboard() && !self.ctx.wants_keyboard_input()
+                && self.ctx.input(|i| {
+                    i.modifiers == kbd.modifiers
+                        && i.key_pressed(kbd.logical_key)
+                })
+            {
+                crate::actions::exec_action(self, action);
+            }
+        }
+            
+    }
 }
 
 impl eframe::App for ClicksMonitorApp {
@@ -320,6 +344,7 @@ impl eframe::App for ClicksMonitorApp {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         // Business logic
         self.handle_all_udp_messages();
+        self.handle_keybinds();
 
         self.render_statusbar(ctx);
         self.render_navigation_panel(ctx);

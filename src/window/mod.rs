@@ -21,7 +21,19 @@ pub mod time;
 pub mod timeline;
 pub mod transport;
 
-#[derive(serde::Deserialize, serde::Serialize, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    serde::Deserialize,
+    serde::Serialize,
+    Default,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Copy,
+    Hash,
+    Debug,
+)]
 pub enum WindowTab {
     SourcesOverview,
     #[default]

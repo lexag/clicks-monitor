@@ -1,9 +1,11 @@
 use crate::{
+    actions::ActionID,
     app::ClicksMonitorApp,
     window::{WindowCategory, WindowTab},
 };
 use common::{local::status::CombinedStatus, protocol::request::Request};
-use egui::{Button, Label, RichText, ScrollArea, Sense, Vec2, Widget};
+use egui::{Button, Label, ModifierNames, RichText, ScrollArea, Sense, Vec2, Widget};
+use egui_keybind::{Bind, Shortcut};
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct NavigationWindowMemory {
@@ -56,18 +58,27 @@ fn tab_select_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             Button::new(RichText::new(tab.name()))
                 .sense(Sense::click())
                 .truncate()
+                .shortcut_text(if let Some(sc) = app.shortcuts.get(&ActionID::Tab(tab)) {
+                    sc.format(&ModifierNames::NAMES, false)
+                } else {
+                    "".to_string()
+                })
                 .min_size(Vec2::new(ui.available_width(), BUTTON_HEIGHT)),
         );
         if label.clicked() && !app.local_memory.navigation.lock_navigation {
-            if app.local_memory.navigation.multiwindow_mode {
-                if let Some((_, tab_ref)) = app.local_memory.dock_state.find_active_focused() {
-                    *tab_ref = tab;
-                } else {
-                    app.local_memory.dock_state.push_to_focused_leaf(tab);
-                }
-            } else {
-                app.local_memory.navigation.current_single_tab = tab
-            }
+            switch_to_tab(app, tab);
         }
+    }
+}
+
+pub fn switch_to_tab(app: &mut ClicksMonitorApp, tab: WindowTab) {
+    if app.local_memory.navigation.multiwindow_mode {
+        if let Some((_, tab_ref)) = app.local_memory.dock_state.find_active_focused() {
+            *tab_ref = tab;
+        } else {
+            app.local_memory.dock_state.push_to_focused_leaf(tab);
+        }
+    } else {
+        app.local_memory.navigation.current_single_tab = tab
     }
 }

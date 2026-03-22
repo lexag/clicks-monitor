@@ -1,12 +1,7 @@
-use crate::{
-    app::ClicksMonitorApp,
-    widget::cassette::Cassette,
-};
+use crate::{app::ClicksMonitorApp, widget::cassette::Cassette};
 use chrono::{DateTime, NaiveTime, Timelike};
 use common::mem::smpte::TimecodeInstant;
-use egui::{
-    Align2, Color32, FontId, Grid, Rect, RichText, Sense, Stroke, Vec2,
-};
+use egui::{Align2, Color32, FontId, Grid, Rect, RichText, Sense, Stroke, Vec2};
 
 const GRID_MARGIN: f32 = 5.0;
 const BORDER_MARGIN: f32 = 16.0;
@@ -269,10 +264,8 @@ pub fn draw_big_clock(
         }
     }
 
-    for i in 0..3 {
-        let text = str::from_utf8(&[separators[i]])
-            .unwrap_or_default()
-            .to_string();
+    for (i, &sep) in separators.iter().enumerate() {
+        let text = str::from_utf8(&[sep]).unwrap_or_default().to_string();
         p.text(
             top_left
                 + Vec2::new(

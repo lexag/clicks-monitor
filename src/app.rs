@@ -85,7 +85,7 @@ impl Default for ClicksMonitorApp {
             udp_client: UdpClient::new(),
             rx: unbounded().1,
             local_memory: LocalMemory::default(),
-            theme: theme::DARK,
+            theme: theme::NATIVE,
             host_connection_info: ConnectionInfo::default(),
             text_entry: TextEntry::new(),
             last_heartbeat: Heartbeat::default(),

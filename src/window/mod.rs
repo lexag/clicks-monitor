@@ -1,9 +1,9 @@
 use crate::app::ClicksMonitorApp;
+use egui_dock::{NodeIndex, SurfaceIndex};
 
 pub mod appearance;
 pub mod beats;
 pub mod connection;
-pub mod cue;
 pub mod events;
 pub mod file_system;
 pub mod hotkeys;
@@ -18,6 +18,7 @@ pub mod settings_audio;
 pub mod sources;
 pub mod statusbar;
 pub mod time;
+pub mod timeline;
 pub mod transport;
 
 #[derive(serde::Deserialize, serde::Serialize, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -133,6 +134,7 @@ impl WindowCategory {
 
 pub struct DockTabRenderer<'a> {
     pub app_state: &'a mut ClicksMonitorApp,
+    pub added_nodes: &'a mut Vec<(WindowTab, SurfaceIndex, NodeIndex)>,
 }
 
 impl<'a> egui_dock::TabViewer for DockTabRenderer<'a> {
@@ -145,7 +147,7 @@ impl<'a> egui_dock::TabViewer for DockTabRenderer<'a> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         let renderer = match tab {
             WindowTab::SourcesOverview => crate::window::sources::display,
-            WindowTab::CueTimeline => crate::window::cue::display,
+            WindowTab::CueTimeline => crate::window::timeline::display,
             WindowTab::ControlTransport => crate::window::transport::display,
             WindowTab::SourcesTime => crate::window::time::display,
             WindowTab::SourcesPlayback => crate::window::playback::display,
@@ -162,5 +164,17 @@ impl<'a> egui_dock::TabViewer for DockTabRenderer<'a> {
             WindowTab::PreferencesSecurity => crate::window::security::display,
         };
         (renderer)(self.app_state, ui);
+    }
+
+    fn add_popup(&mut self, ui: &mut egui::Ui, surface: SurfaceIndex, node: NodeIndex) {
+        ui.set_min_width(120.0);
+        //ui.style_mut().visuals.button_frame = false;
+        ui.vertical_centered_justified(|ui| {
+            for tab in WindowTab::list() {
+                if ui.button(tab.name()).clicked() {
+                    self.added_nodes.push((tab, surface, node));
+                }
+            }
+        });
     }
 }

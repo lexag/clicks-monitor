@@ -24,31 +24,7 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     );
     ScrollArea::new([false, true]).show(ui, |ui| {
         ui.vertical(|ui| {
-            let mut cat = WindowCategory::None;
-
-            const BUTTON_HEIGHT: f32 = 32.0;
-
-            for tab in WindowTab::list() {
-                if tab.category() != cat {
-                    cat = tab.category();
-                    ui.add_space(BUTTON_HEIGHT / 3.0);
-                    ui.add(Label::new(RichText::new(cat.name())).selectable(false));
-                    ui.add_space(BUTTON_HEIGHT / 3.0);
-                }
-                let label = ui.add(
-                    Button::new(RichText::new(tab.name()))
-                        .sense(Sense::click())
-                        .truncate()
-                        .min_size(Vec2::new(ui.available_width(), BUTTON_HEIGHT)),
-                );
-                if label.clicked() && !app.local_memory.navigation.lock_navigation {
-                    if app.local_memory.navigation.multiwindow_mode {
-                        app.local_memory.dock_state.push_to_focused_leaf(tab);
-                    } else {
-                        app.local_memory.navigation.current_single_tab = tab
-                    }
-                }
-            }
+            tab_select_menu(app, ui);
             ui.separator();
             if app.udp_client.active
                 && egui::Button::new("Shutdown")
@@ -62,4 +38,36 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             }
         });
     });
+}
+
+fn tab_select_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let mut cat = WindowCategory::None;
+
+    const BUTTON_HEIGHT: f32 = 32.0;
+
+    for tab in WindowTab::list() {
+        if tab.category() != cat {
+            cat = tab.category();
+            ui.add_space(BUTTON_HEIGHT / 3.0);
+            ui.add(Label::new(RichText::new(cat.name())).selectable(false));
+            ui.add_space(BUTTON_HEIGHT / 3.0);
+        }
+        let label = ui.add(
+            Button::new(RichText::new(tab.name()))
+                .sense(Sense::click())
+                .truncate()
+                .min_size(Vec2::new(ui.available_width(), BUTTON_HEIGHT)),
+        );
+        if label.clicked() && !app.local_memory.navigation.lock_navigation {
+            if app.local_memory.navigation.multiwindow_mode {
+                if let Some((_, tab_ref)) = app.local_memory.dock_state.find_active_focused() {
+                    *tab_ref = tab;
+                } else {
+                    app.local_memory.dock_state.push_to_focused_leaf(tab);
+                }
+            } else {
+                app.local_memory.navigation.current_single_tab = tab
+            }
+        }
+    }
 }

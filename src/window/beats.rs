@@ -1,33 +1,29 @@
 use crate::app::ClicksMonitorApp;
 use common::{beat::Beat, cue::Cue, event::EventDescription};
-use egui::{
-    style::ScrollAnimation, Align, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2,
-};
+use egui::{style::ScrollAnimation, Align, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2};
 use std::ops::Range;
 
 const NUM_COL: usize = 7;
 const COL_W: [f32; NUM_COL] = [64.0, 64.0, 64.0, 64.0, 64.0, 64.0, 256.0];
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
-    ui.horizontal_top(|ui| {
-        Frame::window(ui.style()).show(ui, |ui| {
-            ui.vertical(|ui| {
-                ui.label(RichText::new("Cues").heading());
-                crate::window::statusbar::cues_menu(app, ui);
-            });
+    egui::SidePanel::right("cue-list-panel").show_inside(ui, |ui| {
+        ui.vertical(|ui| {
+            ui.label(RichText::new("Cues").heading());
+            crate::window::statusbar::cues_menu(app, ui);
         });
-        Frame::window(ui.style()).show(ui, |ui| {
-            ui.vertical(|ui| {
-                ui.label(
-                    RichText::new(format!(
-                        "#{} {}",
-                        app.status.cue.cue.metadata.human_ident, app.status.cue.cue.metadata.name
-                    ))
-                    .heading(),
-                );
-                beat_table(app, ui);
-            });
-        });
+    });
+
+    ui.label(RichText::new("Beats").heading());
+    ui.vertical(|ui| {
+        ui.label(
+            RichText::new(format!(
+                "#{} {}",
+                app.status.cue.cue.metadata.human_ident, app.status.cue.cue.metadata.name
+            ))
+            .heading(),
+        );
+        beat_table(app, ui);
     });
 }
 
@@ -140,7 +136,10 @@ pub fn beat_table_beat(
 
         event_string.push_str(
             match event.event {
-                Some(EventDescription::TimecodeEvent { time, properties: _ }) => {
+                Some(EventDescription::TimecodeEvent {
+                    time,
+                    properties: _,
+                }) => {
                     format!("LTC [{}]", time)
                 }
 

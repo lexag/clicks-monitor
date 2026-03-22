@@ -16,12 +16,12 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
 
     // Render central canvas area, which returns which beat is hovered.
     let mut hovered_idx = usize::MAX;
-    egui::CentralPanel::default().show(ui.ctx(), |ui| {
+    egui::CentralPanel::default().show_inside(ui, |ui| {
         hovered_idx = render_cue(app, ui);
     });
 
     // Render details in side panel for hovered beat.
-    side_panel.show(ui.ctx(), |ui| {
+    side_panel.show_inside(ui, |ui| {
         if hovered_idx == usize::MAX {
             ui.label("Hover a beat to view details.");
             return;

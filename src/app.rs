@@ -269,6 +269,7 @@ impl ClicksMonitorApp {
     fn render_main_panel(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.local_memory.navigation.multiwindow_mode {
+                let mut added_nodes = vec![];
                 let mut dock_state = self.local_memory.dock_state.clone();
                 let dock = egui_dock::DockArea::new(&mut dock_state);
                 egui::CentralPanel::default().show(ctx, |ui| {
@@ -278,12 +279,27 @@ impl ClicksMonitorApp {
                         .show_close_buttons(!self.local_memory.navigation.lock_navigation)
                         .show_leaf_close_all_buttons(!self.local_memory.navigation.lock_navigation)
                         .show_leaf_collapse_buttons(!self.local_memory.navigation.lock_navigation)
-                        .show_inside(ui, &mut DockTabRenderer { app_state: self });
+                        .show_inside(
+                            ui,
+                            &mut DockTabRenderer {
+                                app_state: self,
+                                added_nodes: &mut added_nodes,
+                            },
+                        );
                 });
+                added_nodes.drain(..).for_each(|(tab, surface, node)| {
+                    dock_state.set_focused_node_and_surface((surface, node));
+                    dock_state.push_to_focused_leaf(tab);
+                });
+
                 self.local_memory.dock_state = dock_state;
             } else {
                 let mut tab = self.local_memory.navigation.current_single_tab.clone();
-                (DockTabRenderer { app_state: self }).ui(ui, &mut tab);
+                (DockTabRenderer {
+                    app_state: self,
+                    added_nodes: &mut vec![],
+                })
+                .ui(ui, &mut tab);
             }
         });
     }

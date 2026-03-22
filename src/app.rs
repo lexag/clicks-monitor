@@ -16,7 +16,7 @@ use crate::{
     udp::UdpClient,
     widget::textentry::TextEntry,
     window::{
-        logs::LogWindowMemory, navigation::NavigationWindowMemory,
+        connection::NetworkMemory, logs::LogWindowMemory, navigation::NavigationWindowMemory,
         performance::PerformanceWindowMemory, playback::PlaybackWindowMemory,
         security::SecurityWindowMemory, DockTabRenderer, WindowTab,
     },
@@ -57,6 +57,7 @@ pub struct LocalMemory {
     pub performance: PerformanceWindowMemory,
     pub security: SecurityWindowMemory,
     pub navigation: NavigationWindowMemory,
+    pub network: NetworkMemory,
     pub dock_state: egui_dock::DockState<WindowTab>,
 }
 
@@ -69,6 +70,7 @@ impl Default for LocalMemory {
             performance: PerformanceWindowMemory::default(),
             security: SecurityWindowMemory::default(),
             dock_state: DockState::new(vec![WindowTab::SourcesTime]),
+            network: NetworkMemory::default(),
         }
     }
 }

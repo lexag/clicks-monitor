@@ -1,39 +1,9 @@
-use chrono::{DateTime, Utc};
-
 use crate::app::ClicksMonitorApp;
-use common::{
-    local::status::CombinedStatus,
-    protocol::request::Request,
-};
-use egui::Widget;
+use common::{local::status::CombinedStatus, mem::network::IpAddress, protocol::request::Request};
 
-pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
-    ui.label(egui::RichText::new("Connection").heading());
-    settings(app, ui);
-}
-
-pub fn clients_table(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
-    ui.vertical(|ui| {
-        ui.label(egui::RichText::new("Active Clients").heading());
-        egui::Grid::new("clients-table")
-            .striped(true)
-            .show(ui, |ui| {
-                ui.label("Client name");
-                ui.label("IP address");
-                ui.label("Port");
-                ui.end_row();
-                for subscriber in app.status.network_status.subscribers.clone() {
-                    ui.label(subscriber.identifier.str());
-                    ui.label(subscriber.address.to_string());
-                    let timediff = Utc::now().signed_duration_since(
-                        DateTime::from_timestamp_secs(subscriber.last_contact as i64).unwrap(),
-                    );
-                    ui.label(format!("{}m", timediff.num_minutes()));
-
-                    ui.end_row();
-                }
-            });
-    });
+#[derive(serde::Deserialize, serde::Serialize, Default)]
+pub struct NetworkMemory {
+    pub target_ip_str: String,
 }
 
 pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
@@ -41,26 +11,17 @@ pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
         ui.disable();
     }
     egui::Grid::new("connection_settings")
-        .num_columns(5)
+        .num_columns(2)
         .show(ui, |ui| {
             ui.label("Host address");
-            ui.horizontal(|ui| {
-                egui::DragValue::new(&mut app.host_connection_info.address.addr[0]).ui(ui);
-                egui::DragValue::new(&mut app.host_connection_info.address.addr[1]).ui(ui);
-                egui::DragValue::new(&mut app.host_connection_info.address.addr[2]).ui(ui);
-                egui::DragValue::new(&mut app.host_connection_info.address.addr[3]).ui(ui);
-                egui::DragValue::new(&mut app.host_connection_info.address.port).ui(ui);
-            });
+            ui.text_edit_singleline(&mut app.local_memory.network.target_ip_str);
             ui.end_row();
 
             ui.label("Local address");
             ui.horizontal(|ui| {
                 ui.label(format!(
-                    "{}.{}.{}.{}:{}",
-                    app.udp_client.local.address.addr[0],
-                    app.udp_client.local.address.addr[1],
-                    app.udp_client.local.address.addr[2],
-                    app.udp_client.local.address.addr[3],
+                    "{}:{}",
+                    app.udp_client.local.address.str_from_octets(),
                     app.udp_client.local.address.port
                 ))
             });
@@ -71,32 +32,21 @@ pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
                 .char_limit(16)
                 .show(ui);
             ui.end_row();
-            if ui
-                .button(if app.udp_client.active {
-                    "Apply"
-                } else {
-                    "Connect"
-                })
-                .clicked()
-                && app.local_memory.security.allow_interaction
-            {
-                match app.udp_client.connect(
-                    app.udp_client.local.identifier,
-                    app.host_connection_info.address,
-                ) {
-                    Ok(ci) => {
-                        app.host_connection_info = ci;
-                    }
-                    Err(err) => {
-                        println!("Connection error: {}", err);
-                    }
+
+            let button_text = if app.udp_client.active {
+                "Apply"
+            } else {
+                "Connect"
+            };
+            let button_connect = ui.button(button_text);
+            let button_disconnect = ui.button("Disconnect");
+            if app.local_memory.security.allow_interaction {
+                if button_connect.clicked() {
+                    try_connect(app);
                 }
-            }
-            if app.udp_client.active && ui.button("Disconnect").clicked() {
-                app.udp_client
-                    .send_msg(Request::Unsubscribe(app.udp_client.local.clone()));
-                app.udp_client.active = false;
-                app.status = CombinedStatus::default();
+                if button_disconnect.clicked() && app.udp_client.active {
+                    try_disconnect(app);
+                }
             }
         })
         .response
@@ -105,14 +55,27 @@ pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
         );
 }
 
-pub fn details(_app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
-    //    egui::Grid::new("connection_details")
-    //        .num_columns(2)
-    //        .max_col_width(ui.available_width() / 2.0)
-    //        .show(ui, |ui| {
-    //            ui.label("UDP channel cue");
-    //            ui.label(app.rx.len().to_string());
-    //            ui.end_row();
-    //        });
-    //        ui.separator();
+fn try_disconnect(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::Unsubscribe(app.udp_client.local));
+    app.udp_client.active = false;
+    app.status = CombinedStatus::default();
+}
+
+fn try_connect(app: &mut ClicksMonitorApp) {
+    let addr_parse = IpAddress::from_address_str(&app.local_memory.network.target_ip_str);
+    if let Some(addr) = addr_parse {
+        app.host_connection_info.address = addr;
+        match app.udp_client.connect(
+            app.udp_client.local.identifier,
+            app.host_connection_info.address,
+        ) {
+            Ok(ci) => {
+                app.host_connection_info = ci;
+            }
+            Err(err) => {
+                println!("Connection error: {}", err);
+            }
+        }
+    }
 }

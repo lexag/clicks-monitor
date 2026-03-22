@@ -80,6 +80,7 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             }
             ui.menu_button(RichText::new("Host Network").color(color), |ui| {
                 crate::window::connection::settings(app, ui);
+                ui.separator();
                 if app.rx.len() > 16 {
                     ui.colored_label(app.theme.err_prim, "Living in the past. Clearing cue...");
                 } else if !app.udp_client.active {

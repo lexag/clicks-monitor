@@ -1,7 +1,7 @@
 use crate::app::ClicksMonitorApp;
 use common::{local::status::CombinedStatus, mem::network::IpAddress, protocol::request::Request};
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct NetworkMemory {
     pub target_ip_str: String,
 }
@@ -55,14 +55,14 @@ pub fn settings(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
         );
 }
 
-fn try_disconnect(app: &mut ClicksMonitorApp) {
+pub fn try_disconnect(app: &mut ClicksMonitorApp) {
     app.udp_client
         .send_msg(Request::Unsubscribe(app.udp_client.local));
     app.udp_client.active = false;
     app.status = CombinedStatus::default();
 }
 
-fn try_connect(app: &mut ClicksMonitorApp) {
+pub fn try_connect(app: &mut ClicksMonitorApp) {
     let addr_parse = IpAddress::from_address_str(&app.local_memory.network.target_ip_str);
     if let Some(addr) = addr_parse {
         app.host_connection_info.address = addr;

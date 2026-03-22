@@ -9,25 +9,23 @@ use common::{
         request::Request,
     },
 };
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{Receiver, unbounded};
 
 use crate::{
-    actions::{ ActionID},
+    actions::{ActionID, ShortcutMap},
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
     window::{
-        connection::NetworkMemory, logs::LogWindowMemory, navigation::NavigationWindowMemory,
-        performance::PerformanceWindowMemory, playback::PlaybackWindowMemory,
-        security::SecurityWindowMemory, DockTabRenderer, WindowTab,
+        DockTabRenderer, WindowTab, connection::NetworkMemory, logs::LogWindowMemory,
+        navigation::NavigationWindowMemory, performance::PerformanceWindowMemory,
+        playback::PlaybackWindowMemory, security::SecurityWindowMemory,
     },
 };
 use egui::{Context, FontFamily};
 use egui_dock::{DockState, TabViewer};
-use egui_keybind::{Shortcut};
-use std::collections::HashMap;
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[serde(default)]
 pub struct ClicksMonitorApp {
     #[serde(skip)]
@@ -48,13 +46,15 @@ pub struct ClicksMonitorApp {
     pub system_config: SystemConfiguration,
     #[serde(skip)]
     pub log_entries: Vec<LogItem>,
-    pub shortcuts: HashMap<ActionID, Shortcut>,
+    #[serde(skip)]
+    pub dock_state: egui_dock::DockState<WindowTab>,
     pub host_connection_info: ConnectionInfo,
     pub local_memory: LocalMemory,
     pub theme: Theme,
+    pub shortcuts: ShortcutMap,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct LocalMemory {
     pub playback: PlaybackWindowMemory,
     pub log: LogWindowMemory,
@@ -62,7 +62,6 @@ pub struct LocalMemory {
     pub security: SecurityWindowMemory,
     pub navigation: NavigationWindowMemory,
     pub network: NetworkMemory,
-    pub dock_state: egui_dock::DockState<WindowTab>,
 }
 
 impl Default for LocalMemory {
@@ -73,7 +72,6 @@ impl Default for LocalMemory {
             navigation: NavigationWindowMemory::default(),
             performance: PerformanceWindowMemory::default(),
             security: SecurityWindowMemory::default(),
-            dock_state: DockState::new(vec![WindowTab::SourcesTime]),
             network: NetworkMemory::default(),
         }
     }
@@ -95,6 +93,7 @@ impl Default for ClicksMonitorApp {
             text_entry: TextEntry::new(),
             last_heartbeat: Heartbeat::default(),
             log_entries: vec![],
+            dock_state: DockState::new(vec![WindowTab::SourcesTime]),
         }
     }
 }
@@ -104,10 +103,10 @@ impl ClicksMonitorApp {
 
     pub fn new(cc: &eframe::CreationContext<'_>, udp_client: UdpClient) -> Self {
         let mut a = if let Some(storage) = cc.storage {
-            serde_json::from_str(
-                &eframe::Storage::get_string(storage, eframe::APP_KEY).unwrap_or_default(),
-            )
-            .unwrap_or_default()
+            let storage_str =
+                &eframe::Storage::get_string(storage, eframe::APP_KEY).unwrap_or_default();
+            let serde_res = serde_json::from_str(storage_str);
+            serde_res.unwrap_or_default()
         } else {
             Self::default()
         };
@@ -118,6 +117,11 @@ impl ClicksMonitorApp {
         a.setup_custom_fonts(&a.ctx);
 
         egui_extras::install_image_loaders(&cc.egui_ctx);
+
+        // Reload default shortcuts every launch
+        a.shortcuts = crate::actions::all_default_shortcuts();
+
+        a.shortcuts.rebuild();
 
         a
     }
@@ -277,7 +281,7 @@ impl ClicksMonitorApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             if self.local_memory.navigation.multiwindow_mode {
                 let mut added_nodes = vec![];
-                let mut dock_state = self.local_memory.dock_state.clone();
+                let mut dock_state = self.dock_state.clone();
                 let dock = egui_dock::DockArea::new(&mut dock_state);
                 egui::CentralPanel::default().show(ctx, |ui| {
                     dock.show_add_popup(!self.local_memory.navigation.lock_navigation)
@@ -299,9 +303,9 @@ impl ClicksMonitorApp {
                     dock_state.push_to_focused_leaf(tab);
                 });
 
-                self.local_memory.dock_state = dock_state;
+                self.dock_state = dock_state;
             } else {
-                let mut tab = self.local_memory.navigation.current_single_tab.clone();
+                let mut tab = self.local_memory.navigation.current_single_tab;
                 (DockTabRenderer {
                     app_state: self,
                     added_nodes: &mut vec![],
@@ -312,22 +316,20 @@ impl ClicksMonitorApp {
     }
 
     pub fn handle_keybinds(&mut self) {
-        let keys = self.shortcuts.keys().cloned().collect::<Vec<ActionID>>();
+        let keys = self.shortcuts.actions.clone();
         for action in keys {
             let shortcut = self.shortcuts.get(&action);
-        
-            if let Some(shortcut) = shortcut &&
 
-            let Some(kbd) = shortcut.keyboard() && !self.ctx.wants_keyboard_input()
-                && self.ctx.input(|i| {
-                    i.modifiers == kbd.modifiers
-                        && i.key_pressed(kbd.logical_key)
-                })
+            if let Some(shortcut) = shortcut
+                && let Some(kbd) = shortcut.keyboard()
+                && !self.ctx.wants_keyboard_input()
+                && self
+                    .ctx
+                    .input(|i| i.modifiers == kbd.modifiers && i.key_pressed(kbd.logical_key))
             {
                 crate::actions::exec_action(self, action);
             }
         }
-            
     }
 }
 

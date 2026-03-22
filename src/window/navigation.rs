@@ -7,7 +7,7 @@ use common::{local::status::CombinedStatus, protocol::request::Request};
 use egui::{Button, Label, ModifierNames, RichText, ScrollArea, Sense, Vec2, Widget};
 use egui_keybind::{Bind, Shortcut};
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct NavigationWindowMemory {
     pub current_single_tab: WindowTab,
     pub multiwindow_mode: bool,
@@ -73,12 +73,22 @@ fn tab_select_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
 
 pub fn switch_to_tab(app: &mut ClicksMonitorApp, tab: WindowTab) {
     if app.local_memory.navigation.multiwindow_mode {
-        if let Some((_, tab_ref)) = app.local_memory.dock_state.find_active_focused() {
+        if let Some((_, tab_ref)) = app.dock_state.find_active_focused() {
             *tab_ref = tab;
         } else {
-            app.local_memory.dock_state.push_to_focused_leaf(tab);
+            app.dock_state.push_to_focused_leaf(tab);
         }
     } else {
         app.local_memory.navigation.current_single_tab = tab
+    }
+}
+
+pub fn current_focused_tab(app: &mut ClicksMonitorApp) -> Option<WindowTab> {
+    if !app.local_memory.navigation.multiwindow_mode {
+        Some(app.local_memory.navigation.current_single_tab)
+    } else if let Some((_, tab_ref)) = app.dock_state.find_active_focused() {
+        Some(*tab_ref)
+    } else {
+        None
     }
 }

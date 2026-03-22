@@ -1,8 +1,8 @@
 use crate::app::ClicksMonitorApp;
 use egui::Widget;
-use egui::{vec2, Align2, RichText};
+use egui::{Align2, RichText, vec2};
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TextEntry {
     title: String,
     text: String,

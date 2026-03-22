@@ -7,7 +7,7 @@ use egui::{Grid, Widget};
 use itertools::Itertools;
 use std::collections::HashMap;
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct PlaybackWindowMemory {
     pub clip_cue_list: HashMap<u8, u16>,
 }
@@ -25,14 +25,13 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
                 app.local_memory.playback.clip_cue_list.len(),
             ));
             if ui.button("Play").clicked() && app.local_memory.security.allow_interaction {
-                play_clip_cue(app, ui);
+                play_clip_cue(app);
             };
             if ui.button("Once").clicked() && app.local_memory.security.allow_interaction {
-                play_clip_cue(app, ui);
-                app.local_memory.playback.clip_cue_list.clear();
+                play_clip_cue_once(app);
             };
             if ui.button("Stop").clicked() && app.local_memory.security.allow_interaction {
-                play_clip_cue(app, ui);
+                play_clip_cue(app);
             };
             if ui.button("Clear").clicked() && app.local_memory.security.allow_interaction {
                 app.local_memory.playback.clip_cue_list.clear();
@@ -44,7 +43,7 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             .clicked()
             && app.local_memory.security.allow_interaction
         {
-            stop_all(app, ui);
+            stop_all(app);
         };
     });
     Grid::new("playback-channel-grid")
@@ -65,6 +64,11 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
                 ui.end_row();
             }
         });
+}
+
+pub fn play_clip_cue_once(app: &mut ClicksMonitorApp) {
+    play_clip_cue(app);
+    app.local_memory.playback.clip_cue_list.clear();
 }
 
 pub fn render_channel_slice(app: &mut ClicksMonitorApp, ui: &mut egui::Ui, index: usize) {
@@ -221,7 +225,7 @@ pub fn render_clip(
         });
 }
 
-pub fn play_clip_cue(app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
+pub fn play_clip_cue(app: &mut ClicksMonitorApp) {
     for (channel, clip) in app.local_memory.playback.clip_cue_list.clone() {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(
@@ -234,7 +238,7 @@ pub fn play_clip_cue(app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
     }
 }
 
-pub fn stop_all(app: &mut ClicksMonitorApp, _ui: &mut egui::Ui) {
+pub fn stop_all(app: &mut ClicksMonitorApp) {
     for i in 0..30 {
         app.udp_client
             .send_msg(Request::ControlAction(ControlAction::RunEvent(

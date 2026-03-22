@@ -5,7 +5,7 @@ use egui::{Align2, Color32, FontId, RichText, Sense, Stroke, Vec2};
 
 use crate::app::ClicksMonitorApp;
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct PerformanceWindowMemory {
     pub heartbeats: VecDeque<Heartbeat>,
 }

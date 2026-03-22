@@ -26,33 +26,10 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             performance_slot(app, ui);
 
             // Interaction lock
-            lock_slot(app, ui);
+            crate::window::security::lock_slot(app, ui);
 
             crate::window::transport::control_field(app, ui);
         });
-}
-
-fn lock_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
-    if app.local_memory.security.allow_interaction {
-        let label = ui.colored_label(app.theme.active_prim, RichText::new("󰌿 FREE").monospace());
-        if label.clicked() {
-            app.local_memory.security.allow_interaction = false;
-        }
-    } else {
-        let color = if app.local_memory.security.require_password {
-            app.theme.cued_prim
-        } else {
-            app.theme.warn_prim
-        };
-        let label = ui.colored_label(color, RichText::new("󰌾 LOCK").monospace());
-        if label.clicked() {
-            if app.local_memory.security.require_password {
-                // TODO: Handle modal
-            } else {
-                app.local_memory.security.allow_interaction = true;
-            }
-        }
-    }
 }
 
 fn performance_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {

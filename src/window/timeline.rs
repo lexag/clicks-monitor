@@ -139,7 +139,7 @@ fn render_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) -> usize {
                     ui,
                     i,
                     hovered,
-                    beat.clone(),
+                    *beat,
                     beat_rect,
                     &app.status,
                 );

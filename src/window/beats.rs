@@ -1,6 +1,6 @@
 use crate::app::ClicksMonitorApp;
 use common::{beat::Beat, cue::Cue, event::EventDescription};
-use egui::{style::ScrollAnimation, Align, Color32, Frame, Grid, Rect, RichText, ScrollArea, Vec2};
+use egui::{style::ScrollAnimation, Align, Color32, Grid, Rect, RichText, ScrollArea, Vec2};
 use std::ops::Range;
 
 const NUM_COL: usize = 7;

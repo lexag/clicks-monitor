@@ -4,7 +4,7 @@ use common::{
 };
 use egui::{containers::menu::MenuConfig, Color32, MenuBar, PopupCloseBehavior, RichText, Widget};
 
-use crate::{app::ClicksMonitorApp, theme, window::WindowTab};
+use crate::{app::ClicksMonitorApp, theme};
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     MenuBar::new()

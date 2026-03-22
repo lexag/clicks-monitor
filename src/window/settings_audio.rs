@@ -40,11 +40,11 @@ pub fn audio_details(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             ui.end_row();
 
             ui.label("Client name");
-            ui.label(format!("{}", app.status.jack_status.client_name.str()));
+            ui.label(app.status.jack_status.client_name.str().to_string());
             ui.end_row();
 
             ui.label("Output name");
-            ui.label(format!("{}", app.status.jack_status.output_name.str()));
+            ui.label(app.status.jack_status.output_name.str().to_string());
             ui.end_row();
 
             ui.label("CPU load");

@@ -160,7 +160,7 @@ pub fn render_clip(
             .playback
             .clip_cue_list
             .get(&status.channel)
-            .is_some_and(|c| *c as u16 == clip)
+            .is_some_and(|c| *c == clip)
         {
             app.theme.cued_prim
         } else if real_clip {

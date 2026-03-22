@@ -29,7 +29,7 @@ fn format_data_amount(bytes: usize) -> String {
     let n = bytesf.add(0.5).log10().floor();
     let si_idx = n.div(3.0).floor();
 
-    let val = bytesf.div(1000.0_f32.powf(si_idx as f32));
+    let val = bytesf.div(1000.0_f32.powf(si_idx));
 
     format!("{} {}", val.round(), SI[si_idx as usize])
 }

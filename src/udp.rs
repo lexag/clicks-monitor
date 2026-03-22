@@ -178,7 +178,7 @@ impl UdpClient {
     pub fn anonymous_send(socket: &UdpSocket, msg: Request) -> usize {
         let mut buf = [0u8; size_of::<Request>()];
         let res = postcard::to_slice(&msg, &mut buf).unwrap_or_default();
-        let _ = socket.send(&res);
+        let _ = socket.send(res);
         res.len()
     }
 

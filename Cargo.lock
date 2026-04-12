@@ -519,7 +519,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 [[package]]
 name = "beat"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "postcard",
  "serde",
@@ -799,7 +799,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "2.2.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "beat",
  "cue",
@@ -946,7 +946,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cue"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "beat",
  "event",
@@ -1449,7 +1449,7 @@ dependencies = [
 [[package]]
 name = "event"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "mem",
  "postcard",
@@ -2378,7 +2378,7 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 [[package]]
 name = "local"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "beat",
  "bitflags 2.11.0",
@@ -2448,7 +2448,7 @@ dependencies = [
 [[package]]
 name = "mem"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "bitflags 2.11.0",
  "postcard",
@@ -3385,7 +3385,7 @@ dependencies = [
 [[package]]
 name = "protocol"
 version = "0.0.0"
-source = "git+https://github.com/lexag/clicks-common.git?branch=combinedstatus-playback#c80ba2ffd52b763c4968fa2e273d73e1d40f253f"
+source = "git+https://github.com/lexag/clicks-common.git?branch=main#5ba669a7392b255a3934ae162d65811e246017ed"
 dependencies = [
  "beat",
  "bitflags 2.11.0",

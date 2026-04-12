@@ -2,7 +2,7 @@ use common::{
     mem::time::format_hms,
     protocol::request::{ControlAction, Request},
 };
-use egui::{containers::menu::MenuConfig, MenuBar, PopupCloseBehavior, RichText};
+use egui::{MenuBar, PopupCloseBehavior, RichText, containers::menu::MenuConfig};
 
 use crate::app::ClicksMonitorApp;
 
@@ -77,6 +77,14 @@ fn clock_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             ui.label(format!("Host: {}", host_time));
             ui.label(format!("Client: {}", system_time / 1000000));
             ui.label(format!("Diff: {} ms", diff / 1000,));
+            ui.label(format!(
+                "Host common version: {}",
+                app.last_heartbeat.common_version
+            ));
+            ui.label(format!(
+                "Host system version: {}",
+                app.last_heartbeat.system_version
+            ));
         },
     );
 }

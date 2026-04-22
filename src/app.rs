@@ -3,26 +3,29 @@ use common::{
         config::{LogItem, SystemConfiguration},
         status::{AudioSourceState, CombinedStatus},
     },
-    mem::network::ConnectionInfo,
+    mem::{network::ConnectionInfo, typeflags::MessageType},
     protocol::{
         message::{Heartbeat, LargeMessage, Message, SmallMessage},
         request::Request,
     },
 };
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{Receiver, unbounded};
 
 use crate::{
+    actions::{ActionID, ShortcutMap},
     theme::{self, Theme},
     udp::UdpClient,
     widget::textentry::TextEntry,
     window::{
-        logs::LogWindowMemory, performance::PerformanceWindowMemory,
-        playback::PlaybackWindowMemory, security::SecurityWindowMemory, WindowTab,
+        DockTabRenderer, WindowTab, connection::NetworkMemory, logs::LogWindowMemory,
+        navigation::NavigationWindowMemory, performance::PerformanceWindowMemory,
+        playback::PlaybackWindowMemory, security::SecurityWindowMemory,
     },
 };
-use egui::FontFamily;
+use egui::{Context, FontFamily};
+use egui_dock::{DockState, TabViewer};
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 #[serde(default)]
 pub struct ClicksMonitorApp {
     #[serde(skip)]
@@ -43,23 +46,41 @@ pub struct ClicksMonitorApp {
     pub system_config: SystemConfiguration,
     #[serde(skip)]
     pub log_entries: Vec<LogItem>,
+    #[serde(skip)]
+    pub dock_state: egui_dock::DockState<WindowTab>,
     pub host_connection_info: ConnectionInfo,
     pub local_memory: LocalMemory,
     pub theme: Theme,
+    pub shortcuts: ShortcutMap,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct LocalMemory {
-    pub current_tab: WindowTab,
     pub playback: PlaybackWindowMemory,
     pub log: LogWindowMemory,
     pub performance: PerformanceWindowMemory,
     pub security: SecurityWindowMemory,
+    pub navigation: NavigationWindowMemory,
+    pub network: NetworkMemory,
+}
+
+impl Default for LocalMemory {
+    fn default() -> Self {
+        Self {
+            playback: PlaybackWindowMemory::default(),
+            log: LogWindowMemory::default(),
+            navigation: NavigationWindowMemory::default(),
+            performance: PerformanceWindowMemory::default(),
+            security: SecurityWindowMemory::default(),
+            network: NetworkMemory::default(),
+        }
+    }
 }
 
 impl Default for ClicksMonitorApp {
     fn default() -> Self {
         Self {
+            shortcuts: crate::actions::all_default_shortcuts(),
             system_config: SystemConfiguration::default(),
             sources_gains: vec![0.0f32; 32],
             ctx: egui::Context::default(),
@@ -67,11 +88,12 @@ impl Default for ClicksMonitorApp {
             udp_client: UdpClient::new(),
             rx: unbounded().1,
             local_memory: LocalMemory::default(),
-            theme: theme::DARK,
+            theme: theme::NATIVE,
             host_connection_info: ConnectionInfo::default(),
             text_entry: TextEntry::new(),
             last_heartbeat: Heartbeat::default(),
             log_entries: vec![],
+            dock_state: DockState::new(vec![WindowTab::SourcesTime]),
         }
     }
 }
@@ -79,23 +101,28 @@ impl Default for ClicksMonitorApp {
 impl ClicksMonitorApp {
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-    /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>, udp_client: UdpClient) -> Self {
         let mut a = if let Some(storage) = cc.storage {
-            serde_json::from_str(
-                &eframe::Storage::get_string(storage, eframe::APP_KEY).unwrap_or_default(),
-            )
-            .unwrap_or_default()
+            let storage_str =
+                &eframe::Storage::get_string(storage, eframe::APP_KEY).unwrap_or_default();
+            let serde_res = serde_json::from_str(storage_str);
+            serde_res.unwrap_or_default()
         } else {
             Self::default()
         };
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
         a.udp_client = udp_client;
         a.rx = a.udp_client.get_receiver();
         a.set_theme(cc.egui_ctx.clone(), a.theme);
         a.ctx = cc.egui_ctx.clone();
         a.setup_custom_fonts(&a.ctx);
+
+        egui_extras::install_image_loaders(&cc.egui_ctx);
+
+        // Reload default shortcuts every launch
+        a.shortcuts = crate::actions::all_default_shortcuts();
+
+        a.shortcuts.rebuild();
+
         a
     }
 
@@ -108,72 +135,97 @@ impl ClicksMonitorApp {
         self.theme = theme;
     }
 
-    pub fn handle_cc_message(&mut self, msg: Message, size: usize) {
-        self.udp_client.active = true;
-        let tally_pre = self
+    fn update_rx_tally(&mut self, msg_type: MessageType, size: usize) {
+        let entry = self
             .udp_client
             .rx_message_tally
-            .get(&msg.to_type())
-            .unwrap_or(&(0, 0));
-        self.udp_client
-            .rx_message_tally
-            .insert(msg.to_type(), (tally_pre.0 + 1, tally_pre.1 + size));
-        //println!("Received Message {:?}", msg.clone());
+            .entry(msg_type)
+            .or_insert((0, 0));
+
+        entry.0 += 1;
+        entry.1 += size;
+    }
+    fn handle_small_message(&mut self, msg: SmallMessage) {
         match msg {
-            Message::Small(SmallMessage::TransportData(status)) => {
+            SmallMessage::TransportData(status) => {
                 self.status.transport = status;
             }
-            Message::Small(SmallMessage::PlaybackData(status)) => {
+            SmallMessage::PlaybackData(status) => {
                 self.status.sources[2 + status.channel as usize] =
                     AudioSourceState::PlaybackStatus(status);
             }
-            Message::Small(SmallMessage::TimecodeData(status)) => {
+            SmallMessage::TimecodeData(status) => {
                 self.status.sources[1] = AudioSourceState::TimeStatus(status);
             }
-            Message::Small(SmallMessage::BeatData(beat)) => {
+            SmallMessage::BeatData(beat) => {
                 self.status.sources[0] = AudioSourceState::BeatStatus(beat);
             }
-            Message::Large(LargeMessage::CueData(cue)) => {
-                self.status.cue = cue;
-            }
-            Message::Large(LargeMessage::ShowData(show)) => {
-                self.status.show = show;
-            }
-            Message::Large(LargeMessage::PlaybackHandlerChanged(status)) => {
-                self.status.playback_status = status;
-            }
-            Message::Large(LargeMessage::NetworkChanged(status)) => {
-                self.status.network_status = status;
-            }
-            Message::Large(LargeMessage::JACKStateChanged(status)) => {
-                self.status.jack_status = status;
-            }
-            Message::Small(SmallMessage::ShutdownOccured) => {
+            SmallMessage::ShutdownOccured => {
                 self.udp_client.active = false;
             }
-            Message::Large(LargeMessage::ConfigurationChanged(config)) => {
-                for i in 0..self.sources_gains.len() {
-                    self.sources_gains[i] = config.channels[i].gain;
-                }
-                self.system_config = config;
+            SmallMessage::Heartbeat(heartbeat) => {
+                self.handle_heartbeat(heartbeat);
             }
-            Message::Small(SmallMessage::Heartbeat(heartbeat)) => {
-                self.last_heartbeat = heartbeat;
-                self.local_memory
-                    .performance
-                    .heartbeats
-                    .push_back(heartbeat.clone());
-                while self.local_memory.performance.heartbeats.len() > 300 {
-                    self.local_memory.performance.heartbeats.pop_front();
-                }
-            }
-            Message::Large(LargeMessage::Log(item)) => self.log_entries.push(item),
             _ => {}
         }
     }
 
+    fn handle_large_message(&mut self, msg: LargeMessage) {
+        match msg {
+            LargeMessage::CueData(cue) => {
+                self.status.cue = cue;
+            }
+            LargeMessage::ShowData(show) => {
+                self.status.show = show;
+            }
+            LargeMessage::PlaybackHandlerChanged(status) => {
+                self.status.playback_status = status;
+            }
+            LargeMessage::NetworkChanged(status) => {
+                self.status.network_status = status;
+            }
+            LargeMessage::JACKStateChanged(status) => {
+                self.status.jack_status = status;
+            }
+            LargeMessage::ConfigurationChanged(config) => {
+                self.apply_config(config);
+            }
+            LargeMessage::Log(item) => {
+                self.log_entries.push(item);
+            }
+        }
+    }
+
+    fn handle_heartbeat(&mut self, heartbeat: Heartbeat) {
+        self.last_heartbeat = heartbeat;
+
+        let heartbeats = &mut self.local_memory.performance.heartbeats;
+        heartbeats.push_back(heartbeat);
+
+        while heartbeats.len() > 300 {
+            heartbeats.pop_front();
+        }
+    }
+
+    fn apply_config(&mut self, config: SystemConfiguration) {
+        for (i, channel) in config.channels.iter().enumerate() {
+            self.sources_gains[i] = channel.gain;
+        }
+
+        self.system_config = config;
+    }
+
+    fn handle_udp_message(&mut self, msg: Message, size: usize) {
+        self.udp_client.active = true;
+        self.update_rx_tally(msg.to_type(), size);
+
+        match msg {
+            Message::Small(s) => self.handle_small_message(s),
+            Message::Large(l) => self.handle_large_message(l),
+        }
+    }
+
     fn setup_custom_fonts(&self, ctx: &egui::Context) {
-        // Load the font from file
         let font_data =
             include_bytes!("../assets/fonts/DroidSansMNerdFontMono-Regular.otf").to_vec();
 
@@ -201,6 +253,84 @@ impl ClicksMonitorApp {
         // Apply the font definitions
         ctx.set_fonts(fonts);
     }
+
+    fn handle_all_udp_messages(&mut self) {
+        loop {
+            match self.rx.try_recv() {
+                Ok((msg, size)) => self.handle_udp_message(msg, size),
+                Err(crossbeam_channel::TryRecvError::Empty) => break,
+                Err(err) => println!("rx error: {}", err),
+            }
+        }
+    }
+    fn render_navigation_panel(&mut self, ctx: &Context) {
+        egui::SidePanel::left("navigation-panel")
+            .resizable(false)
+            .show_animated(ctx, true, |ui| {
+                crate::window::navigation::display(self, ui);
+            });
+    }
+
+    fn render_statusbar(&mut self, ctx: &Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            crate::window::statusbar::display(self, ui);
+        });
+    }
+
+    fn render_main_panel(&mut self, ctx: &Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            if self.local_memory.navigation.multiwindow_mode {
+                let mut added_nodes = vec![];
+                let mut dock_state = self.dock_state.clone();
+                let dock = egui_dock::DockArea::new(&mut dock_state);
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    dock.show_add_popup(!self.local_memory.navigation.lock_navigation)
+                        .show_add_buttons(!self.local_memory.navigation.lock_navigation)
+                        .draggable_tabs(!self.local_memory.navigation.lock_navigation)
+                        .show_close_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_leaf_close_all_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_leaf_collapse_buttons(!self.local_memory.navigation.lock_navigation)
+                        .show_inside(
+                            ui,
+                            &mut DockTabRenderer {
+                                app_state: self,
+                                added_nodes: &mut added_nodes,
+                            },
+                        );
+                });
+                added_nodes.drain(..).for_each(|(tab, surface, node)| {
+                    dock_state.set_focused_node_and_surface((surface, node));
+                    dock_state.push_to_focused_leaf(tab);
+                });
+
+                self.dock_state = dock_state;
+            } else {
+                let mut tab = self.local_memory.navigation.current_single_tab;
+                (DockTabRenderer {
+                    app_state: self,
+                    added_nodes: &mut vec![],
+                })
+                .ui(ui, &mut tab);
+            }
+        });
+    }
+
+    pub fn handle_keybinds(&mut self) {
+        let keys = self.shortcuts.actions.clone();
+        for action in keys {
+            let shortcut = self.shortcuts.get(&action);
+
+            if let Some(shortcut) = shortcut
+                && let Some(kbd) = shortcut.keyboard()
+                && !self.ctx.wants_keyboard_input()
+                && self
+                    .ctx
+                    .input(|i| i.modifiers == kbd.modifiers && i.key_pressed(kbd.logical_key))
+            {
+                crate::actions::exec_action(self, action);
+            }
+        }
+    }
 }
 
 impl eframe::App for ClicksMonitorApp {
@@ -213,65 +343,16 @@ impl eframe::App for ClicksMonitorApp {
         storage.set_string(eframe::APP_KEY, serde_json::to_string(&self).unwrap());
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint();
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        // Business logic
+        self.handle_all_udp_messages();
+        self.handle_keybinds();
 
-        loop {
-            match self.rx.try_recv() {
-                Ok((msg, size)) => self.handle_cc_message(msg, size),
-                Err(crossbeam_channel::TryRecvError::Empty) => break,
-                Err(err) => println!("rx error: {}", err),
-            }
-        }
-
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            crate::window::statusbar::display(self, ui);
-        });
-
-        egui::SidePanel::left("navigation-panel")
-            .resizable(false)
-            .show_animated(ctx, true, |ui| {
-                crate::window::navigation::display(self, ui);
-            });
-
-        egui::CentralPanel::default().show(ctx, |ui| match self.local_memory.current_tab {
-            WindowTab::SourcesOverview => {
-                crate::window::sources::display(self, ui);
-            }
-            WindowTab::CueTimeline => {
-                crate::window::cue::display(self, ui);
-            }
-            WindowTab::ControlTransport => {
-                crate::window::transport::display(self, ui);
-            }
-            WindowTab::SourcesTime => {
-                crate::window::time::display(self, ui);
-            }
-            WindowTab::SourcesPlayback => {
-                crate::window::playback::display(self, ui);
-            }
-            WindowTab::CueBeats => {
-                crate::window::beats::display(self, ui);
-            }
-            WindowTab::CueEvents => {
-                crate::window::events::display(self, ui);
-            }
-            WindowTab::SystemLogs => {
-                crate::window::logs::display(self, ui);
-            }
-            WindowTab::SystemPerformance => {
-                crate::window::performance::display(self, ui);
-            }
-            WindowTab::SystemAudio => {
-                crate::window::settings_audio::display(self, ui);
-            }
-            WindowTab::SystemNetwork => {
-                crate::window::network::display(self, ui);
-            }
-            _ => {}
-        });
+        self.render_statusbar(ctx);
+        self.render_navigation_panel(ctx);
+        self.render_main_panel(ctx);
 
         self.text_entry = self.text_entry.clone().display(self).clone();
+        ctx.request_repaint();
     }
 }

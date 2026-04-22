@@ -1,23 +1,39 @@
+use crate::app::ClicksMonitorApp;
+use egui_dock::{NodeIndex, SurfaceIndex};
+
+pub mod appearance;
 pub mod beats;
 pub mod connection;
-pub mod cue;
 pub mod events;
-pub mod jack;
-pub mod local_config;
+pub mod file_system;
+pub mod hotkeys;
 pub mod logs;
 pub mod navigation;
 pub mod network;
 pub mod performance;
 pub mod playback;
+pub mod run_event;
 pub mod security;
 pub mod settings_audio;
 pub mod sources;
 pub mod statusbar;
-pub mod system_config;
 pub mod time;
+pub mod timeline;
 pub mod transport;
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(
+    serde::Deserialize,
+    serde::Serialize,
+    Default,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Copy,
+    Hash,
+    Debug,
+)]
 pub enum WindowTab {
     SourcesOverview,
     #[default]
@@ -28,7 +44,7 @@ pub enum WindowTab {
     CueEvents,
     ControlTransport,
     ControlRunEvent,
-    ControlSystem,
+    ControlFileSystem,
     SystemLogs,
     SystemPerformance,
     SystemNetwork,
@@ -45,7 +61,7 @@ impl WindowTab {
                 WindowCategory::Sources
             }
             Self::CueTimeline | Self::CueBeats | Self::CueEvents => WindowCategory::Cue,
-            Self::ControlSystem | Self::ControlRunEvent | Self::ControlTransport => {
+            Self::ControlFileSystem | Self::ControlRunEvent | Self::ControlTransport => {
                 WindowCategory::Control
             }
             Self::SystemLogs
@@ -68,7 +84,7 @@ impl WindowTab {
             Self::CueEvents => "Events",
             Self::ControlTransport => "Transport",
             Self::ControlRunEvent => "Run Event",
-            Self::ControlSystem => "File System",
+            Self::ControlFileSystem => "File System",
             Self::SystemLogs => "Logs",
             Self::SystemPerformance => "Performance",
             Self::SystemNetwork => "Network",
@@ -78,6 +94,27 @@ impl WindowTab {
             Self::PreferencesSecurity => "Security",
         }
         .to_string()
+    }
+
+    pub fn list() -> Vec<WindowTab> {
+        vec![
+            WindowTab::SourcesOverview,
+            WindowTab::SourcesTime,
+            WindowTab::SourcesPlayback,
+            WindowTab::CueTimeline,
+            WindowTab::CueBeats,
+            WindowTab::CueEvents,
+            WindowTab::ControlTransport,
+            WindowTab::ControlRunEvent,
+            WindowTab::ControlFileSystem,
+            WindowTab::SystemLogs,
+            WindowTab::SystemPerformance,
+            WindowTab::SystemNetwork,
+            WindowTab::SystemAudio,
+            WindowTab::PreferencesAppearance,
+            WindowTab::PreferencesHotkeys,
+            WindowTab::PreferencesSecurity,
+        ]
     }
 }
 
@@ -104,5 +141,52 @@ impl WindowCategory {
             Self::None => "",
         }
         .to_string()
+    }
+}
+
+pub struct DockTabRenderer<'a> {
+    pub app_state: &'a mut ClicksMonitorApp,
+    pub added_nodes: &'a mut Vec<(WindowTab, SurfaceIndex, NodeIndex)>,
+}
+
+impl<'a> egui_dock::TabViewer for DockTabRenderer<'a> {
+    type Tab = WindowTab;
+
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        tab.name().into()
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
+        let renderer = match tab {
+            WindowTab::SourcesOverview => crate::window::sources::display,
+            WindowTab::CueTimeline => crate::window::timeline::display,
+            WindowTab::ControlTransport => crate::window::transport::display,
+            WindowTab::SourcesTime => crate::window::time::display,
+            WindowTab::SourcesPlayback => crate::window::playback::display,
+            WindowTab::CueBeats => crate::window::beats::display,
+            WindowTab::CueEvents => crate::window::events::display,
+            WindowTab::SystemLogs => crate::window::logs::display,
+            WindowTab::SystemPerformance => crate::window::performance::display,
+            WindowTab::SystemAudio => crate::window::settings_audio::display,
+            WindowTab::SystemNetwork => crate::window::network::display,
+            WindowTab::ControlRunEvent => crate::window::run_event::display,
+            WindowTab::ControlFileSystem => crate::window::file_system::display,
+            WindowTab::PreferencesAppearance => crate::window::appearance::display,
+            WindowTab::PreferencesHotkeys => crate::window::hotkeys::display,
+            WindowTab::PreferencesSecurity => crate::window::security::display,
+        };
+        (renderer)(self.app_state, ui);
+    }
+
+    fn add_popup(&mut self, ui: &mut egui::Ui, surface: SurfaceIndex, node: NodeIndex) {
+        ui.set_min_width(120.0);
+        //ui.style_mut().visuals.button_frame = false;
+        ui.vertical_centered_justified(|ui| {
+            for tab in WindowTab::list() {
+                if ui.button(tab.name()).clicked() {
+                    self.added_nodes.push((tab, surface, node));
+                }
+            }
+        });
     }
 }

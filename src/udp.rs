@@ -83,7 +83,7 @@ impl UdpClient {
         let ci = ConnectionInfo {
             identifier: StaticString::new(""),
             address: IpAddress::from_address_str(&self.socket.peer_addr().unwrap().to_string())
-                .expect("pls"),
+                .unwrap_or_default(),
             end: ConnectionEnd::Remote,
         };
         Ok(ci)
@@ -178,7 +178,7 @@ impl UdpClient {
     pub fn anonymous_send(socket: &UdpSocket, msg: Request) -> usize {
         let mut buf = [0u8; size_of::<Request>()];
         let res = postcard::to_slice(&msg, &mut buf).unwrap_or_default();
-        let _ = socket.send(&res);
+        let _ = socket.send(res);
         res.len()
     }
 

@@ -30,10 +30,7 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             )
             .clicked()
             {
-                app.udp_client
-                    .send_msg(Request::ControlAction(ControlAction::ChangeJumpMode(
-                        JumpModeChange::Toggle,
-                    )));
+                vlt_toggle(app);
             }
 
             ui.horizontal_top(|ui| {
@@ -67,35 +64,29 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
             let stop_button = big_button(ui, "Stop", app.theme.err_prim, size);
 
             if stop_button.clicked() {
-                app.udp_client
-                    .send_msg(Request::ControlAction(ControlAction::TransportStop));
+                stop(app);
             }
             if stop_button.double_clicked() {
-                app.udp_client
-                    .send_msg(Request::ControlAction(ControlAction::TransportZero));
+                zero(app);
             }
 
             ui.end_row();
 
             if big_button(ui, "Goto Zero", app.theme.neutral_prim, size).clicked() {
-                app.udp_client
-                    .send_msg(Request::ControlAction(ControlAction::TransportZero));
+                zero(app);
             }
 
             ui.horizontal_centered(|ui| {
                 if big_button(ui, "Prev Cue", app.theme.neutral_prim, size).clicked() {
-                    app.udp_client
-                        .send_msg(Request::ControlAction(ControlAction::LoadPreviousCue));
+                    prev(app);
                 }
                 if big_button(ui, "Next Cue", app.theme.neutral_prim, size).clicked() {
-                    app.udp_client
-                        .send_msg(Request::ControlAction(ControlAction::LoadNextCue));
+                    next(app);
                 }
             });
 
             if big_button(ui, "Play", app.theme.cued_prim, size).clicked() {
-                app.udp_client
-                    .send_msg(Request::ControlAction(ControlAction::TransportStart));
+                start(app);
             }
 
             ui.end_row();
@@ -117,6 +108,38 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
         });
         control_field(app, ui);
     });
+}
+
+pub fn vlt_toggle(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::ChangeJumpMode(
+            JumpModeChange::Toggle,
+        )));
+}
+
+pub fn start(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::TransportStart));
+}
+
+pub fn next(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::LoadNextCue));
+}
+
+pub fn prev(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::LoadPreviousCue));
+}
+
+pub fn zero(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::TransportZero));
+}
+
+pub fn stop(app: &mut ClicksMonitorApp) {
+    app.udp_client
+        .send_msg(Request::ControlAction(ControlAction::TransportStop));
 }
 
 pub fn control_field(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {

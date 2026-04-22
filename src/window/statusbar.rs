@@ -1,230 +1,174 @@
 use common::{
-    cue::Cue,
     mem::time::format_hms,
     protocol::request::{ControlAction, Request},
 };
-use egui::{Color32, RichText, Widget};
+use egui::{MenuBar, PopupCloseBehavior, RichText, containers::menu::MenuConfig};
 
-use crate::{app::ClicksMonitorApp, theme, window::WindowTab};
+use crate::app::ClicksMonitorApp;
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
-    egui::menu::bar(ui, |ui| {
-        ui.menu_button("File", |ui| {
-            if ui.button("Quit").clicked() {
-                app.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            }
-        });
-        ui.menu_button("View", |ui| {
-            ui.menu_button("Theme", |ui| {
-                if ui.button("Native").clicked() {
-                    app.set_theme(app.ctx.clone(), theme::NATIVE);
-                }
-                let themes = vec![
-                    ("Dark", theme::DARK),
-                    ("Light", theme::LIGHT),
-                    ("Black", theme::BLACK),
-                    ("Black (Monochrome)", theme::BLACK_MONOCHROME),
-                ];
-                for (name, theme) in themes {
-                    if ui.button(name).clicked() {
-                        app.set_theme(app.ctx.clone(), theme);
-                    }
-                }
-            });
-            ui.menu_button("Tab", |ui| {
-                for (tab, text, short_text) in [
-                    (WindowTab::SourcesOverview, "Sources", "S"),
-                    (WindowTab::CueTimeline, "Cue", "S"),
-                    (WindowTab::ControlTransport, "Transport", "T"),
-                    (WindowTab::PreferencesSecurity, "Options", "O"),
-                ] {
-                    if egui::Button::new(text)
-                        .shortcut_text(short_text)
-                        .ui(ui)
-                        .clicked()
-                    {
-                        app.local_memory.current_tab = tab
-                    }
-                }
-            });
-            ui.separator();
-            if ui.button("Lock").clicked() {
-                app.local_memory.security.allow_interaction = false;
-            }
-            if ui
-                .button(
-                    "Unlock".to_owned()
-                        + if app.local_memory.security.require_password {
-                            "..."
-                        } else {
-                            ""
-                        },
-                )
-                .clicked()
-            {
-                if app.local_memory.security.require_password {
-                    app.text_entry.open("Password").password(true);
-                } else {
-                    app.local_memory.security.allow_interaction = true;
-                }
-            }
-            if app.text_entry.submitted("Password")
-                && app.text_entry.get_text() == app.local_memory.security.password
-            {
-                app.local_memory.security.allow_interaction = true;
-                app.text_entry.done()
-            }
-        });
-        ui.menu_button("Help", |ui| {
-            ui.label(format!("Monitor version {}", ClicksMonitorApp::VERSION));
-            ui.label(format!("Common version {}", common::VERSION));
-        });
+    MenuBar::new()
+        .config(MenuConfig::new().close_behavior(PopupCloseBehavior::CloseOnClickOutside))
+        .ui(ui, |ui| {
+            // Network status
+            network_slot(app, ui);
 
-        ui.add_space(16.0);
-        // Network status
-        let color: Color32;
-        if app.rx.len() > 16 {
-            color = app.theme.err_prim;
-            for _ in 0..app.rx.len() {
-                let _ = app.rx.try_recv();
-            }
-        } else if !app.udp_client.active {
-            color = app.theme.warn_prim;
+            // Transport status
+            transport_slot(app, ui);
+
+            // Cue status
+            cue_slot(app, ui);
+
+            // Clock
+            clock_slot(app, ui);
+
+            // Performance
+            performance_slot(app, ui);
+
+            // Interaction lock
+            crate::window::security::lock_slot(app, ui);
+
+            crate::window::transport::control_field(app, ui);
+        });
+}
+
+fn performance_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    ui.colored_label(
+        if app.last_heartbeat.cpu_use_audio > 80.0 || app.last_heartbeat.process_freq_main < 10000 {
+            app.theme.err_prim
         } else {
-            color = app.theme.active_prim;
-        }
-        ui.menu_button(RichText::new("Host Network").color(color), |ui| {
-            crate::window::connection::settings(app, ui);
-            if app.rx.len() > 16 {
-                ui.colored_label(app.theme.err_prim, "Living in the past. Clearing cue...");
-            } else if !app.udp_client.active {
-                ui.colored_label(app.theme.warn_prim, "Not Connected");
-            } else {
-                ui.colored_label(app.theme.active_prim, "Ok");
-            }
-            ui.label(format!(
-                "Common version: {}",
-                app.last_heartbeat.common_version.str()
-            ));
-            ui.label(format!(
-                "System version: {}",
-                app.last_heartbeat.system_version.str()
-            ));
-        });
+            app.theme.active_prim
+        },
+        egui::RichText::new(format!(
+            "PERF: {:2.1}%  {: >4}kHz",
+            app.last_heartbeat.cpu_use_audio,
+            app.last_heartbeat.process_freq_main / 1000
+        ))
+        .monospace(),
+    );
+}
 
-        // Transport status
-        let color: Color32;
-        if !app.status.transport.running {
-            color = app.theme.warn_prim;
-        } else {
-            color = app.theme.active_prim;
-        }
-        let beat = app
-            .status
-            .cue
-            .cue
-            .get_beat(app.status.beat_state().beat_idx)
-            .unwrap_or_default();
-        ui.menu_button(
-            RichText::new(format!(
-                "LTC: {}   BEAT: {}.{}",
-                app.status.time_state().ltc,
-                beat.bar_number,
-                beat.count
-            ))
-            .monospace()
-            .color(color),
-            |ui| {
-                transport_menu(app, ui);
-            },
-        );
-
-        // Cue status
-        let color: Color32;
-        let cue_state = app.status.cue.clone();
-        if app.status.beat_state().beat_idx < u16::MAX / 2
-            && app.status.beat_state().beat_idx + 8 > app.status.cue.cue.beats.len() as u16
-        {
-            color = app.theme.warn_prim;
-        } else {
-            color = app.theme.active_prim;
-        }
-        ui.menu_button(
-            RichText::new(format!(
-                "CUE {:0>3}:{: >6} {: <32}",
-                cue_state.cue_idx,
-                cue_state.cue.metadata.human_ident.str(),
-                cue_state.cue.metadata.name.str()
-            ))
-            .monospace()
-            .color(color),
-            |ui| {
-                cues_menu(app, ui);
-            },
-        );
-
-        // Clock
-        let system_time = chrono::prelude::Utc::now().timestamp_micros() as u64;
-        let host_time = app.last_heartbeat.system_time;
-        let diff = system_time.abs_diff(host_time * 1000000);
-        let color = if host_time > 0 {
-            if diff < 5 * 1000000 {
-                app.theme.active_prim
-            } else {
-                app.theme.err_prim
-            }
+fn clock_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let system_time = chrono::prelude::Utc::now().timestamp_micros() as u64;
+    let host_time = app.last_heartbeat.system_time;
+    let diff = system_time.abs_diff(host_time * 1000000);
+    let color = if host_time > 0 {
+        if diff < 5 * 1000000 {
+            app.theme.active_prim
         } else {
             app.theme.warn_prim
-        };
-        ui.menu_button(
-            RichText::new(format!(
-                "󰈈 {}    {}",
-                format_hms(system_time / 1000000).str(),
-                if host_time > 0 {
-                    format_hms(host_time).str().to_string()
-                } else {
-                    "--:--:--".to_string()
-                }
-            ))
-            .monospace()
-            .color(color),
-            |ui| {
-                ui.label(format!("Host: {}", host_time));
-                ui.label(format!("Client: {}", system_time / 1000000));
-                ui.label(format!("Diff: {} ms", diff / 1000,));
-            },
-        );
-
-        // Performance
-        ui.colored_label(
-            if app.last_heartbeat.cpu_use_audio > 80.0
-                || app.last_heartbeat.process_freq_main < 10000
-            {
-                app.theme.err_prim
-            } else {
-                app.theme.active_prim
-            },
-            egui::RichText::new(format!(
-                "PERF: {:2.1}%  {}kHz",
-                app.last_heartbeat.cpu_use_audio,
-                app.last_heartbeat.process_freq_main / 1000
-            ))
-            .monospace(),
-        );
-
-        // Interaction lock
-        if !app.local_memory.security.allow_interaction {
-            ui.colored_label(
-                if app.local_memory.security.require_password {
-                    app.theme.active_prim
-                } else {
-                    app.theme.warn_prim
-                },
-                egui::RichText::new("󰌾 LOCK").monospace(),
-            );
         }
+    } else {
+        app.theme.err_prim
+    };
+    ui.menu_button(
+        RichText::new(format!(
+            "󰈈 {}    {}",
+            format_hms(system_time / 1000000).str(),
+            if host_time > 0 {
+                format_hms(host_time).str().to_string()
+            } else {
+                "--:--:--".to_string()
+            }
+        ))
+        .monospace()
+        .color(color),
+        |ui| {
+            ui.label(format!("Host: {}", host_time));
+            ui.label(format!("Client: {}", system_time / 1000000));
+            ui.label(format!("Diff: {} ms", diff / 1000,));
+            ui.label(format!(
+                "Host common version: {}",
+                app.last_heartbeat.common_version
+            ));
+            ui.label(format!(
+                "Host system version: {}",
+                app.last_heartbeat.system_version
+            ));
+        },
+    );
+}
 
-        crate::window::transport::control_field(app, ui);
+fn cue_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let cue_state = app.status.cue.clone();
+    let color = if app.status.beat_state().beat_idx < u16::MAX / 2
+        && app.status.beat_state().beat_idx + 8 > app.status.cue.cue.beats.len() as u16
+    {
+        app.theme.warn_prim
+    } else {
+        app.theme.active_prim
+    };
+    ui.menu_button(
+        RichText::new(format!(
+            "CUE {:0>3}:{: >6} {: <32}",
+            cue_state.cue_idx,
+            cue_state.cue.metadata.human_ident.str(),
+            cue_state.cue.metadata.name.str()
+        ))
+        .monospace()
+        .color(color),
+        |ui| {
+            cues_menu(app, ui);
+        },
+    );
+}
+
+fn transport_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let color = if app.status.transport.running {
+        app.theme.active_prim
+    } else {
+        app.theme.warn_prim
+    };
+    let beat = app
+        .status
+        .cue
+        .cue
+        .get_beat(app.status.beat_state().beat_idx)
+        .unwrap_or_default();
+    ui.menu_button(
+        RichText::new(format!(
+            "LTC: {}   BEAT: {}.{}",
+            app.status.time_state().ltc,
+            beat.bar_number,
+            beat.count
+        ))
+        .monospace()
+        .color(color),
+        |ui| {
+            transport_menu(app, ui);
+        },
+    );
+}
+
+fn network_slot(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let color = if app.rx.len() > 16 {
+        for _ in 0..app.rx.len() {
+            let _ = app.rx.try_recv();
+        }
+        app.theme.err_prim
+    } else if !app.udp_client.active {
+        app.theme.warn_prim
+    } else {
+        app.theme.active_prim
+    };
+    ui.menu_button(RichText::new("Host Network").color(color), |ui| {
+        crate::window::connection::settings(app, ui);
+        ui.separator();
+        if app.rx.len() > 16 {
+            ui.colored_label(app.theme.err_prim, "Living in the past. Clearing cue...");
+        } else if !app.udp_client.active {
+            ui.colored_label(app.theme.warn_prim, "Not Connected");
+        } else {
+            ui.colored_label(app.theme.active_prim, "Ok");
+        }
+        ui.label(format!(
+            "Common version: {}",
+            app.last_heartbeat.common_version.str()
+        ));
+        ui.label(format!(
+            "System version: {}",
+            app.last_heartbeat.system_version.str()
+        ));
     });
 }
 

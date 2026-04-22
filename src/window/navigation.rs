@@ -1,67 +1,94 @@
 use crate::{
+    actions::ActionID,
     app::ClicksMonitorApp,
     window::{WindowCategory, WindowTab},
 };
 use common::{local::status::CombinedStatus, protocol::request::Request};
-use egui::{Button, Label, RichText, ScrollArea, Sense, Vec2, Widget};
+use egui::{Button, Label, ModifierNames, RichText, ScrollArea, Sense, Vec2, Widget};
+use egui_keybind::{Bind, Shortcut};
+
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
+pub struct NavigationWindowMemory {
+    pub current_single_tab: WindowTab,
+    pub multiwindow_mode: bool,
+    pub lock_navigation: bool,
+}
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.label(RichText::new("Navigation").heading());
-    ScrollArea::new([false, true])
-        .drag_to_scroll(true)
-        .show(ui, |ui| {
-            ui.vertical(|ui| {
-                let mut cat = WindowCategory::None;
-
-                const BUTTON_HEIGHT: f32 = 32.0;
-
-                for tab in [
-                    WindowTab::SourcesOverview,
-                    WindowTab::SourcesTime,
-                    WindowTab::SourcesPlayback,
-                    WindowTab::CueTimeline,
-                    WindowTab::CueBeats,
-                    WindowTab::CueEvents,
-                    WindowTab::ControlTransport,
-                    WindowTab::ControlRunEvent,
-                    WindowTab::ControlSystem,
-                    WindowTab::SystemLogs,
-                    WindowTab::SystemPerformance,
-                    WindowTab::SystemNetwork,
-                    WindowTab::SystemAudio,
-                    WindowTab::PreferencesAppearance,
-                    WindowTab::PreferencesHotkeys,
-                    WindowTab::PreferencesSecurity,
-                ] {
-                    if tab.category() != cat {
-                        cat = tab.category();
-                        ui.add_space(BUTTON_HEIGHT / 3.0);
-                        ui.add(Label::new(RichText::new(cat.name())).selectable(false));
-                        ui.add_space(BUTTON_HEIGHT / 3.0);
-                    }
-                    let label = ui.add(
-                        Button::new(RichText::new(tab.name()))
-                            .sense(Sense::click())
-                            .truncate()
-                            //.stroke(Stroke::new(0.0, Color32::TRANSPARENT))
-                            //.fill(Color32::TRANSPARENT)
-                            .min_size(Vec2::new(ui.available_width(), BUTTON_HEIGHT)),
-                    );
-                    if label.clicked() {
-                        app.local_memory.current_tab = tab
-                    }
-                }
-                ui.separator();
-                if app.udp_client.active
-                    && egui::Button::new("Shutdown")
-                        .fill(app.theme.err_prim_wk)
-                        .ui(ui)
-                        .clicked()
-                    && app.local_memory.security.allow_interaction
-                {
-                    app.status = CombinedStatus::default();
-                    app.udp_client.send_msg(Request::Shutdown)
-                }
-            });
+    ui.checkbox(
+        &mut app.local_memory.navigation.multiwindow_mode,
+        "Enable multiview",
+    );
+    ui.checkbox(
+        &mut app.local_memory.navigation.lock_navigation,
+        "Lock layout",
+    );
+    ScrollArea::new([false, true]).show(ui, |ui| {
+        ui.vertical(|ui| {
+            tab_select_menu(app, ui);
+            ui.separator();
+            if app.udp_client.active
+                && egui::Button::new("Shutdown")
+                    .fill(app.theme.err_prim_wk)
+                    .ui(ui)
+                    .clicked()
+                && app.local_memory.security.allow_interaction
+            {
+                app.status = CombinedStatus::default();
+                app.udp_client.send_msg(Request::Shutdown)
+            }
         });
+    });
+}
+
+fn tab_select_menu(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
+    let mut cat = WindowCategory::None;
+
+    const BUTTON_HEIGHT: f32 = 32.0;
+
+    for tab in WindowTab::list() {
+        if tab.category() != cat {
+            cat = tab.category();
+            ui.add_space(BUTTON_HEIGHT / 3.0);
+            ui.add(Label::new(RichText::new(cat.name())).selectable(false));
+            ui.add_space(BUTTON_HEIGHT / 3.0);
+        }
+        let label = ui.add(
+            Button::new(RichText::new(tab.name()))
+                .sense(Sense::click())
+                .truncate()
+                .shortcut_text(if let Some(sc) = app.shortcuts.get(&ActionID::Tab(tab)) {
+                    sc.format(&ModifierNames::NAMES, false)
+                } else {
+                    "".to_string()
+                })
+                .min_size(Vec2::new(ui.available_width(), BUTTON_HEIGHT)),
+        );
+        if label.clicked() && !app.local_memory.navigation.lock_navigation {
+            switch_to_tab(app, tab);
+        }
+    }
+}
+
+pub fn switch_to_tab(app: &mut ClicksMonitorApp, tab: WindowTab) {
+    if app.local_memory.navigation.multiwindow_mode {
+        if let Some((_, tab_ref)) = app.dock_state.find_active_focused() {
+            *tab_ref = tab;
+        } else {
+            app.dock_state.push_to_focused_leaf(tab);
+        }
+    } else {
+        app.local_memory.navigation.current_single_tab = tab
+    }
+}
+
+pub fn current_focused_tab(app: &mut ClicksMonitorApp) -> Option<WindowTab> {
+    if !app.local_memory.navigation.multiwindow_mode {
+        Some(app.local_memory.navigation.current_single_tab)
+    } else if let Some((_, tab_ref)) = app.dock_state.find_active_focused() {
+        Some(*tab_ref)
+    } else {
+        None
+    }
 }

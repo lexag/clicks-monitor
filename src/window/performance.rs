@@ -1,11 +1,11 @@
-use std::{collections::VecDeque, ops::Sub};
+use std::collections::VecDeque;
 
 use common::protocol::message::Heartbeat;
-use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, Vec2};
+use egui::{Align2, Color32, FontId, RichText, Sense, Stroke, Vec2};
 
 use crate::app::ClicksMonitorApp;
 
-#[derive(serde::Deserialize, serde::Serialize, Default)]
+#[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct PerformanceWindowMemory {
     pub heartbeats: VecDeque<Heartbeat>,
 }
@@ -94,7 +94,7 @@ pub fn graph(
         //    Color32::BLACK.lerp_to_gamma(Color32::DARK_GRAY, 0.1),
         //);
 
-        if x.len() != y.len() || x.len() == 0 || y.len() == 0 {
+        if x.len() != y.len() || x.is_empty() || y.is_empty() {
             return;
         }
 
@@ -119,7 +119,7 @@ pub fn graph(
             .unwrap_or(&0.0);
 
         // let x_round_factor = 10_f32.powf(x_max.log10().ceil() + 1.0).ceil();
-        let y_round_factor = 10_f32.powf(y_max.log10().ceil() + 1.0).ceil();
+        let _y_round_factor = 10_f32.powf(y_max.log10().ceil() + 1.0).ceil();
 
         x_min = x_min_f.unwrap_or(x_min);
         x_max = x_max_f.unwrap_or(x_max);
@@ -136,10 +136,10 @@ pub fn graph(
         }
 
         for i in 0..x.len() - 1 {
-            let x_i: f32 = x[i].clone().into();
-            let x_j: f32 = x[i + 1].clone().into();
-            let y_i: f32 = y[i].clone().into();
-            let y_j: f32 = y[i + 1].clone().into();
+            let x_i: f32 = x[i];
+            let x_j: f32 = x[i + 1];
+            let y_i: f32 = y[i];
+            let y_j: f32 = y[i + 1];
             let p_a = origin
                 + (Vec2::new(x_i, y_i) - Vec2::new(x_min, y_min)) * graph_size
                     / Vec2::new(x_range, y_range);

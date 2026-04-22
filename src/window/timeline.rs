@@ -16,12 +16,12 @@ pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
 
     // Render central canvas area, which returns which beat is hovered.
     let mut hovered_idx = usize::MAX;
-    egui::CentralPanel::default().show(ui.ctx(), |ui| {
+    egui::CentralPanel::default().show_inside(ui, |ui| {
         hovered_idx = render_cue(app, ui);
     });
 
     // Render details in side panel for hovered beat.
-    side_panel.show(ui.ctx(), |ui| {
+    side_panel.show_inside(ui, |ui| {
         if hovered_idx == usize::MAX {
             ui.label("Hover a beat to view details.");
             return;
@@ -139,7 +139,7 @@ fn render_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) -> usize {
                     ui,
                     i,
                     hovered,
-                    beat.clone(),
+                    *beat,
                     beat_rect,
                     &app.status,
                 );
@@ -221,9 +221,9 @@ fn render_beat(
         let event_icon = match inner_event {
             EventDescription::JumpEvent {
                 destination,
-                requirement,
-                when_passed,
-                when_jumped,
+                requirement: _,
+                when_passed: _,
+                when_jumped: _,
             } => {
                 if destination as usize > idx {
                     "J"
@@ -255,7 +255,7 @@ fn render_event_info(
     theme: Theme,
     ui: &mut egui::Ui,
     app: &ClicksMonitorApp,
-    idx: usize,
+    _idx: usize,
     beat: Beat,
     event: Event,
 ) {
@@ -275,9 +275,9 @@ fn render_event_info(
             match event.event {
                 Some(EventDescription::JumpEvent {
                     destination,
-                    requirement,
-                    when_jumped,
-                    when_passed,
+                    requirement: _,
+                    when_jumped: _,
+                    when_passed: _,
                 }) => {
                     let dest_beat = app.status.cue.cue.get_beat(destination).unwrap();
                     ui.label("Destination:");
@@ -310,7 +310,7 @@ fn render_event_info(
                     ));
                 }
 
-                Some(EventDescription::TimecodeEvent { time, properties }) => {
+                Some(EventDescription::TimecodeEvent { time, properties: _ }) => {
                     ui.label("Timestamp:");
                     ui.label(
                         RichText::new(format!("{}:{}:{}:{}", time.h, time.m, time.s, time.f))

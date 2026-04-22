@@ -1,8 +1,8 @@
 [package]
 name = "monitor"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
-repository = "https://github.com/Karspexet/ClicKS"
+repository = "https://github.com/lexag/clicks-monitor"
 authors = [ "Axel Stenberg" ]
 description = "Live software monitor for the ClicKS digital metronome and timing suite"
 

@@ -1,11 +1,11 @@
 use crate::app::ClicksMonitorApp;
-use common::{
-    local::config::{ChannelAssignment, ChannelConfiguration, SystemConfigurationChange},
-    protocol::request::{ControlAction, Request},
-};
 use egui::{
     Align2, FontId, Frame, Grid, Label, Rect, Response, RichText, ScrollArea, Sense, Stroke,
     StrokeKind, Vec2, Widget,
+};
+use ks_common_clicks::{
+    local::config::{ChannelAssignment, ChannelConfiguration, SystemConfigurationChange},
+    protocol::request::{ControlAction, Request},
 };
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {

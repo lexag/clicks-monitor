@@ -1,8 +1,6 @@
 use crate::app::ClicksMonitorApp;
-use common::event::{
-    Event, EventDescription, JumpRequirement, PauseEventBehaviour,
-};
 use egui::{Color32, Grid, ProgressBar, RichText, Widget};
+use ks_common_clicks::event::{Event, EventDescription, JumpRequirement, PauseEventBehaviour};
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
@@ -85,10 +83,7 @@ pub fn render_event_slice(app: &ClicksMonitorApp, ui: &mut egui::Ui, event: &Eve
         ui.horizontal(|ui| {
             ui.set_width(256.0);
             match event {
-                EventDescription::TimecodeEvent {
-                    time,
-                    properties: _,
-                } => {
+                EventDescription::TimecodeEvent { time } => {
                     ui.label(RichText::new(format!("{}", time)).monospace());
                 }
                 EventDescription::TimecodeStopEvent => {}

@@ -1,15 +1,15 @@
-use common::{
+use crossbeam_channel::{Receiver, unbounded};
+use ks_common_clicks::{
     local::{
         config::{LogItem, SystemConfiguration},
         status::{AudioSourceState, CombinedStatus},
     },
-    mem::{network::ConnectionInfo, typeflags::MessageType},
     protocol::{
         message::{Heartbeat, LargeMessage, Message, SmallMessage},
         request::Request,
     },
 };
-use crossbeam_channel::{Receiver, unbounded};
+use ks_common_generic::{network::ConnectionInfo, typeflags::MessageType};
 
 use crate::{
     actions::{ActionID, ShortcutMap},

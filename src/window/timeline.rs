@@ -1,7 +1,7 @@
-use egui::{vec2, Align2, CornerRadius, Rect, RichText, Stroke};
+use egui::{Align2, CornerRadius, Rect, RichText, Stroke, vec2};
 
 use crate::{app::ClicksMonitorApp, theme::Theme};
-use common::{
+use ks_common_clicks::{
     beat::Beat,
     event::{Event, EventCursor, EventDescription},
     local::status::CombinedStatus,
@@ -134,17 +134,12 @@ fn render_cue(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) -> usize {
                 }
 
                 // Draw main beat tile
-                render_beat(
-                    app.theme,
-                    ui,
-                    i,
-                    hovered,
-                    *beat,
-                    beat_rect,
-                    &app.status,
-                );
+                render_beat(app.theme, ui, i, hovered, *beat, beat_rect, &app.status);
             }
-            if app.local_memory.security.allow_interaction && resp.clicked() && hovered_idx < usize::MAX / 2 {
+            if app.local_memory.security.allow_interaction
+                && resp.clicked()
+                && hovered_idx < usize::MAX / 2
+            {
                 app.udp_client
                     .send_msg(Request::ControlAction(if app.status.transport.running {
                         ControlAction::TransportSeekBeat(hovered_idx as u16)
@@ -310,13 +305,9 @@ fn render_event_info(
                     ));
                 }
 
-                Some(EventDescription::TimecodeEvent { time, properties: _ }) => {
+                Some(EventDescription::TimecodeEvent { time }) => {
                     ui.label("Timestamp:");
-                    ui.label(
-                        RichText::new(format!("{}:{}:{}:{}", time.h, time.m, time.s, time.f))
-                            .monospace()
-                            .strong(),
-                    );
+                    ui.label(RichText::new(format!("{}", time)).monospace().strong());
                 }
                 Some(EventDescription::TempoChangeEvent { tempo }) => {
                     ui.label(format!("Tempo: {}", tempo));

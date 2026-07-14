@@ -1,5 +1,6 @@
 use crate::app::ClicksMonitorApp;
-use common::{local::status::CombinedStatus, mem::network::IpAddress, protocol::request::Request};
+use ks_common_clicks::{local::status::CombinedStatus, protocol::request::Request};
+use ks_common_generic::network::IpAddress;
 
 #[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct NetworkMemory {

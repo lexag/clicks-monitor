@@ -1,8 +1,6 @@
-use common::{
-    mem::time::format_hms,
-    protocol::request::{ControlAction, Request},
-};
 use egui::{MenuBar, PopupCloseBehavior, RichText, containers::menu::MenuConfig};
+use ks_common_clicks::protocol::request::{ControlAction, Request};
+use ks_common_generic::time::format_hms;
 
 use crate::app::ClicksMonitorApp;
 

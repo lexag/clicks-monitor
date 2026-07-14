@@ -3,12 +3,12 @@ use std::{
     ops::{Add, Div},
 };
 
-use common::mem::{
+use egui::{Align2, Color32, FontId, Painter, Pos2, RichText, Sense, Stroke, Vec2};
+use ks_common_generic::{
     network::SubscriberInfo,
     str::StaticString,
     typeflags::{MessageType, RequestType},
 };
-use egui::{Align2, Color32, FontId, Painter, Pos2, RichText, Sense, Stroke, Vec2};
 
 use crate::app::ClicksMonitorApp;
 

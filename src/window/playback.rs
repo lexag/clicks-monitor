@@ -1,10 +1,10 @@
 use crate::app::ClicksMonitorApp;
-use common::event::EventDescription;
-use common::local::status::{AudioSourceState, PlaybackState};
-use common::protocol::request::{ControlAction, Request};
 use egui::{Align, Button, Color32, Label, ProgressBar, RichText, Sense};
 use egui::{Grid, Widget};
 use itertools::Itertools;
+use ks_common_clicks::event::EventDescription;
+use ks_common_clicks::local::status::{AudioSourceState, PlaybackState};
+use ks_common_clicks::protocol::request::{ControlAction, Request};
 use std::collections::HashMap;
 
 #[derive(serde::Deserialize, serde::Serialize, Default, Debug)]

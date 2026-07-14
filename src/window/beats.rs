@@ -1,6 +1,6 @@
 use crate::app::ClicksMonitorApp;
-use common::{beat::Beat, cue::Cue, event::EventDescription};
-use egui::{style::ScrollAnimation, Align, Color32, Grid, Rect, RichText, ScrollArea, Vec2};
+use egui::{Align, Color32, Grid, Rect, RichText, ScrollArea, Vec2, style::ScrollAnimation};
+use ks_common_clicks::{beat::Beat, cue::Cue, event::EventDescription};
 use std::ops::Range;
 
 const NUM_COL: usize = 7;
@@ -136,10 +136,7 @@ pub fn beat_table_beat(
 
         event_string.push_str(
             match event.event {
-                Some(EventDescription::TimecodeEvent {
-                    time,
-                    properties: _,
-                }) => {
+                Some(EventDescription::TimecodeEvent { time }) => {
                     format!("LTC [{}]", time)
                 }
 

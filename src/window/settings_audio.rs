@@ -1,6 +1,6 @@
 use crate::app::ClicksMonitorApp;
-use common::{local::config::SystemConfigurationChange, protocol::request::Request};
-use egui::{vec2, Align2, Rect, SidePanel, Stroke, Widget};
+use egui::{Align2, Rect, SidePanel, Stroke, Widget, vec2};
+use ks_common_clicks::{local::config::SystemConfigurationChange, protocol::request::Request};
 
 pub fn display(app: &mut ClicksMonitorApp, ui: &mut egui::Ui) {
     SidePanel::left("audio-settings-panel").show_inside(ui, |ui| {

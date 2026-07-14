@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use common::protocol::message::Heartbeat;
 use egui::{Align2, Color32, FontId, RichText, Sense, Stroke, Vec2};
+use ks_common_clicks::protocol::message::Heartbeat;
 
 use crate::app::ClicksMonitorApp;
 

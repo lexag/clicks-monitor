@@ -3,9 +3,9 @@ use crate::{
     app::ClicksMonitorApp,
     window::{WindowCategory, WindowTab},
 };
-use common::{local::status::CombinedStatus, protocol::request::Request};
 use egui::{Button, Label, ModifierNames, RichText, ScrollArea, Sense, Vec2, Widget};
-use egui_keybind::{Bind, Shortcut};
+use egui_keybind::Bind;
+use ks_common_clicks::{local::status::CombinedStatus, protocol::request::Request};
 
 #[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct NavigationWindowMemory {

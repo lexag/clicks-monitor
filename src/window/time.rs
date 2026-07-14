@@ -1,7 +1,7 @@
 use crate::{app::ClicksMonitorApp, widget::cassette::Cassette};
 use chrono::{DateTime, NaiveTime, Timelike};
-use common::mem::smpte::TimecodeInstant;
 use egui::{Align2, Color32, FontId, Grid, Rect, RichText, Sense, Stroke, Vec2};
+use ks_common_generic::smpte::Timecode;
 
 const GRID_MARGIN: f32 = 5.0;
 const BORDER_MARGIN: f32 = 16.0;
@@ -147,14 +147,14 @@ pub fn draw_session_timer(
 pub fn draw_smpte_time(
     app: &mut ClicksMonitorApp,
     ui: &mut egui::Ui,
-    time: TimecodeInstant,
+    time: Timecode,
     title: String,
     size: f32,
 ) {
     draw_big_clock_in_frame(
         app,
         ui,
-        format!("{:02}{:02}{:02}{:02}", time.h, time.m, time.s, time.f).as_str(),
+        format!("{}", time).as_str(),
         [b':', b':', b':'],
         if app.status.time_state().running {
             app.theme.active_prim

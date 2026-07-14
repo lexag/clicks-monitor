@@ -1,9 +1,9 @@
 use crate::app::ClicksMonitorApp;
-use common::{
+use egui::{Button, Color32, ProgressBar, Response, RichText, Vec2, Widget};
+use ks_common_clicks::{
     event::JumpModeChange,
     protocol::request::{ControlAction, Request},
 };
-use egui::{Button, Color32, ProgressBar, Response, RichText, Vec2, Widget};
 
 pub fn big_button(ui: &mut egui::Ui, label: &str, fill: Color32, size: Vec2) -> Response {
     ui.add(

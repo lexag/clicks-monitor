@@ -1,9 +1,7 @@
 use crate::app::ClicksMonitorApp;
-use common::{
-    local::config::{LogContext, LogKind},
-    mem::time::format_hms,
-};
 use egui::{Grid, Label, RichText, ScrollArea, Widget};
+use ks_common_clicks::local::config::{LogContext, LogKind};
+use ks_common_generic::time::format_hms;
 
 #[derive(serde::Deserialize, serde::Serialize, Default, Debug)]
 pub struct LogWindowMemory {

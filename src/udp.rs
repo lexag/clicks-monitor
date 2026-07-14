@@ -5,18 +5,16 @@ use std::{
 };
 
 use chrono::Utc;
-use common::{
-    mem::{
-        network::{ConnectionEnd, ConnectionInfo, IpAddress, SubscriberInfo},
-        str::StaticString,
-        typeflags::{MessageType, RequestType},
-    },
-    protocol::{
-        message::{LargeMessage, Message, SmallMessage},
-        request::Request,
-    },
+use crossbeam_channel::{Receiver, Sender, unbounded};
+use ks_common_clicks::protocol::{
+    message::{LargeMessage, Message, SmallMessage},
+    request::Request,
 };
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use ks_common_generic::{
+    network::{ConnectionEnd, ConnectionInfo, IpAddress, SubscriberInfo},
+    str::StaticString,
+    typeflags::{MessageType, RequestType},
+};
 use local_ip_address::local_ip;
 #[derive(Debug)]
 pub struct UdpClient {
@@ -119,54 +117,56 @@ impl UdpClient {
         let mut last_recv_time = Instant::now();
         let mut buf = [0u8; 65536];
 
-        std::thread::spawn(move || loop {
-            //println!("udp loop");
-            //println!(
-            //    "Local address: {:?}\nRemote address: {:?}",
-            //    socket,
-            //    socket.peer_addr()
-            //);
-            if last_ping_time.elapsed() > Duration::from_secs(600) {
-                Self::anonymous_send(&socket, Request::Ping);
-                last_ping_time = Instant::now()
-            }
-            if last_recv_time.elapsed() > Duration::from_secs(10) {
-                let _ = tx.try_send((Message::Small(SmallMessage::ShutdownOccured), 1));
-            }
-            buf.fill(0);
-            match socket.recv(&mut buf) {
-                Err(e) => println!("recv function failed: {e:?}"),
-                Ok(packet_len) => {
-                    last_recv_time = Instant::now();
-                    //println!("Receiving message! ({} bytes)", packet_len);
-                    if buf[0] == 0xD2 {
-                        match postcard::from_bytes::<LargeMessage>(&buf[1..]) {
-                            Ok(msg) => {
-                                //println!("It was a large message: {:?}", msg);
-                                let _ = tx.try_send((Message::Large(msg), packet_len));
+        std::thread::spawn(move || {
+            loop {
+                //println!("udp loop");
+                //println!(
+                //    "Local address: {:?}\nRemote address: {:?}",
+                //    socket,
+                //    socket.peer_addr()
+                //);
+                if last_ping_time.elapsed() > Duration::from_secs(600) {
+                    Self::anonymous_send(&socket, Request::Ping);
+                    last_ping_time = Instant::now()
+                }
+                if last_recv_time.elapsed() > Duration::from_secs(10) {
+                    let _ = tx.try_send((Message::Small(SmallMessage::ShutdownOccured), 1));
+                }
+                buf.fill(0);
+                match socket.recv(&mut buf) {
+                    Err(e) => println!("recv function failed: {e:?}"),
+                    Ok(packet_len) => {
+                        last_recv_time = Instant::now();
+                        //println!("Receiving message! ({} bytes)", packet_len);
+                        if buf[0] == 0xD2 {
+                            match postcard::from_bytes::<LargeMessage>(&buf[1..]) {
+                                Ok(msg) => {
+                                    //println!("It was a large message: {:?}", msg);
+                                    let _ = tx.try_send((Message::Large(msg), packet_len));
+                                }
+                                Err(err) => {
+                                    panic!(
+                                        "failed parse! \n {:#02X?}...\n({} bytes)\n{:?}",
+                                        &buf[..packet_len + 5],
+                                        packet_len,
+                                        err
+                                    )
+                                }
                             }
-                            Err(err) => {
-                                panic!(
-                                    "failed parse! \n {:#02X?}...\n({} bytes)\n{:?}",
-                                    &buf[..packet_len + 5],
-                                    packet_len,
-                                    err
-                                )
-                            }
-                        }
-                    } else if buf[0] == 0xE1 {
-                        match postcard::from_bytes::<SmallMessage>(&buf[1..]) {
-                            Ok(msg) => {
-                                //println!("It was a small message: {:?}", msg);
-                                let _ = tx.try_send((Message::Small(msg), packet_len));
-                            }
-                            Err(err) => {
-                                panic!(
-                                    "failed parse! \n {:#02X?}...\n({} bytes)\n{:?}",
-                                    &buf[..packet_len + 5],
-                                    packet_len,
-                                    err
-                                );
+                        } else if buf[0] == 0xE1 {
+                            match postcard::from_bytes::<SmallMessage>(&buf[1..]) {
+                                Ok(msg) => {
+                                    //println!("It was a small message: {:?}", msg);
+                                    let _ = tx.try_send((Message::Small(msg), packet_len));
+                                }
+                                Err(err) => {
+                                    panic!(
+                                        "failed parse! \n {:#02X?}...\n({} bytes)\n{:?}",
+                                        &buf[..packet_len + 5],
+                                        packet_len,
+                                        err
+                                    );
+                                }
                             }
                         }
                     }

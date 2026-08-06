@@ -18,8 +18,8 @@ eframe = { version = "0.33.3", features = ["persistence"] }
 egui = { version = "0.33.3", features = ["serde"] }
 serde = "1.0.219"
 serde_json = "1.0.140"
-ks-common-clicks = { git = "https://github.com/lexag/ks-common.git", branch = "main", features = ["serde", "postcard", "std", "json"] }
-ks-common-generic = { git = "https://github.com/lexag/ks-common.git", branch = "main", features = ["serde", "postcard", "std", "json"] }
+ks-common-clicks = { git = "https://github.com/lexag/ks-common.git", tag = "v2.4.0", features = ["serde", "postcard", "std", "json"] }
+ks-common-generic = { git = "https://github.com/lexag/ks-common.git", tag = "v2.4.0", features = ["serde", "postcard", "std", "json"] }
 ks-common-ui = { git = "https://github.com/lexag/ks-common.git", branch = "main", features = [] }
 egui_extras = { version = "0.33.3", features = ["all_loaders", "image"] }
 whoami = "1.6.0"
